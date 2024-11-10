@@ -356,7 +356,7 @@ config:
         hash: '#air'
         icon: ''
         margin_top_desktop: calc(100vh - 400px)
-        margin_top_mobile: calc(100vh - 400px)
+        margin_top_mobile: calc(100vh - 650px)
         name: BK Weather
         scrolling_effect: false
         show_attribute: true
