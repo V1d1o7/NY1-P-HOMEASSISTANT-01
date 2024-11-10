@@ -13,7 +13,7 @@ items:
   url: /hacsfiles/mini-media-player/mini-media-player-bundle.js?hacstag=1485208381169
 - id: c61b950256f04909970d9090b673c694
   type: module
-  url: /hacsfiles/lovelace-mushroom/mushroom.js?hacstag=444350375408
+  url: /hacsfiles/lovelace-mushroom/mushroom.js?hacstag=444350375410
 - id: d7d101e3a49749da8181a4eed44f0b75
   type: module
   url: /hacsfiles/battery-state-card/battery-state-card.js?hacstag=256292682321
