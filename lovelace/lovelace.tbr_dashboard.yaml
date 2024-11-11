@@ -900,44 +900,6 @@ config:
             type: custom:bubble-card
           type: horizontal-stack
         type: vertical-stack
-      - cards:
-        - actions_content:
-          - prompt_texts: Insert new content:|%content%
-          - update:
-            - content: '%input%'
-            - description: 'Input: %input% content: %content%'
-          entity: sensor.reminders
-          friendly_name: Reminders
-          icons:
-          - checkbox-marked-circle-outline
-          - circle-medium
-          - undo
-          - trash-can-outline
-          show_completed: 5
-          show_item_add: true
-          show_item_delete: true
-          type: custom:powertodoist-card
-          use_quick_add: true
-        - card_mod:
-            style: "ha-card {\n  --ha-card-background: #4e4b4b10;\n  }\n"
-          current: true
-          details: true
-          entity: weather.pw_bk
-          forecast: true
-          hourly_forecast: false
-          name: BK
-          number_of_forecasts: '5'
-          type: custom:weather-card
-        parameters:
-          centeredSlides: true
-          effect: cube
-          grabCursor: true
-          pagination: null
-          rewind: true
-          slidesPerView: auto
-          type: bullets
-        start_card: 1
-        type: custom:swipe-card
       type: grid
     title: Home
     type: sections

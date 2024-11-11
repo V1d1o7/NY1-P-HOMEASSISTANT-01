@@ -1003,35 +1003,8 @@
     data:
       addon: 68413af6_git-exporter
   mode: single
-- id: '1731207765972'
-  alias: Foot Switch | Heater
-  description: ''
-  triggers:
-  - type: not_opened
-    device_id: b1af00da60d931404677b41ce3a113a2
-    entity_id: cd0c5d496ba22ac5bf1346ab9cfd6c82
-    domain: binary_sensor
-    trigger: device
-    enabled: false
-  - trigger: event
-    event_type: zha_event
-    event_data:
-      device_id: b1af00da60d931404677b41ce3a113a2
-      args:
-        attribute_id: 0
-        attribute_name: on_off
-        attribute_value: 1
-        value: 1
-  conditions: []
-  actions:
-  - action: switch.toggle
-    metadata: {}
-    data: {}
-    target:
-      entity_id: switch.heater_power
-  mode: single
 - id: '1731209768650'
-  alias: My Click Situation
+  alias: Foot Switch
   description: ''
   triggers:
   - trigger: event
@@ -1045,11 +1018,6 @@
         value: 1
   conditions: []
   actions:
-  - action: switch.toggle
-    metadata: {}
-    data: {}
-    target:
-      entity_id: switch.heater_power
   - wait_for_trigger:
     - trigger: event
       event_type: zha_event
@@ -1063,11 +1031,30 @@
     timeout:
       hours: 0
       minutes: 0
-      seconds: 0
-      milliseconds: 900
-    continue_on_timeout: false
-  - type: toggle
-    device_id: fe7dd0efbd1af103e82646377c3dcbf9
-    entity_id: 2d2501dee3b5a6f34f461ce1255c2042
-    domain: light
+      seconds: 1
+      milliseconds: 0
+  - if:
+    - condition: template
+      value_template: "{{\n  not wait.trigger\n}}"
+    then:
+    - data:
+        message: Wait completed, no double click
+        notification_id: tst02
+      action: persistent_notification.create
+    - action: switch.toggle
+      metadata: {}
+      data: {}
+      target:
+        entity_id: switch.heater_power
+    else:
+    - data:
+        message: Double click
+        notification_id: tst02
+      action: persistent_notification.create
+    - action: light.turn_on
+      metadata: {}
+      data:
+        brightness_pct: 100
+      target:
+        entity_id: light.tbr_lx
   mode: single
