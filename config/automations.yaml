@@ -187,12 +187,12 @@
   - trigger: state
     entity_id:
     - binary_sensor.ny1_p_bed_01_occupancy
-    from: 'on'
-    to: 'off'
+    to: 'on'
     for:
       hours: 0
       minutes: 0
       seconds: 20
+    from: 'off'
   conditions:
   - condition: state
     entity_id: light.kaufsw_lx_group
