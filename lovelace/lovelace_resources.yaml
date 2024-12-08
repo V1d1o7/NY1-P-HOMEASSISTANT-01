@@ -7,13 +7,13 @@ items:
   url: /hacsfiles/config-template-card/config-template-card.js?hacstag=172177543136
 - id: 72fe70f25b624601908fd60b35b117d8
   type: module
-  url: /hacsfiles/kiosk-mode/kiosk-mode.js?hacstag=497319128631
+  url: /hacsfiles/kiosk-mode/kiosk-mode.js?hacstag=497319128640
 - id: 984db1ced0164f7b89d25f31b17ba6d2
   type: module
   url: /hacsfiles/mini-media-player/mini-media-player-bundle.js?hacstag=1485208381169
 - id: c61b950256f04909970d9090b673c694
   type: module
-  url: /hacsfiles/lovelace-mushroom/mushroom.js?hacstag=444350375410
+  url: /hacsfiles/lovelace-mushroom/mushroom.js?hacstag=444350375421
 - id: d7d101e3a49749da8181a4eed44f0b75
   type: module
   url: /hacsfiles/battery-state-card/battery-state-card.js?hacstag=256292682321
@@ -43,7 +43,7 @@ items:
   url: /hacsfiles/lovelace-header-cards/lovelace-header-cards.js?hacstag=4661961920010
 - id: 45a37c2284764ea3ab8c163f9043881d
   type: module
-  url: /hacsfiles/Bubble-Card/bubble-card.js?hacstag=6801129192304
+  url: /hacsfiles/Bubble-Card/bubble-card.js?hacstag=680112919230
 - id: 5378a26ec316404c9ae7af759988d096
   type: module
   url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js?hacstag=1512800620121
