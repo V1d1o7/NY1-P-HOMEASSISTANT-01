@@ -40,7 +40,7 @@ device_options:
   legacy: false
 permit_join: true
 devices:
-  '0xb4e3f9fffe7569c4':
-    friendly_name: LRBTTN
-  '0x00158d000926fd82':
-    friendly_name: butt
+  '0x00158d000adbff6a':
+    friendly_name: Outside Enviro
+serial:
+  port: /dev/ttyUSB1
