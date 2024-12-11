@@ -270,24 +270,24 @@
 - id: '1720984526076'
   alias: Auto Closet Light
   description: ''
-  trigger:
+  triggers:
   - type: opened
-    platform: device
-    device_id: e1ef8f799c6464a7f9a7dcb9599b9988
-    entity_id: 11a8e9605477ac157621a85dea9258f0
+    device_id: f8cc08348c6135c7e957f490d47b727e
+    entity_id: 9263ec869d681143a94cb848405c4e1b
     domain: binary_sensor
-  condition: []
-  action:
+    trigger: device
+  conditions: []
+  actions:
   - type: turn_on
     device_id: ff5afa74dd8011736a66c852aa59da29
     entity_id: dc235f1bbc2db8a1015b71a1dd55f762
     domain: light
   - wait_for_trigger:
-    - platform: state
-      entity_id:
+    - entity_id:
       - binary_sensor.closet_door_is
       from: 'on'
       to: 'off'
+      trigger: state
   - type: turn_off
     device_id: ff5afa74dd8011736a66c852aa59da29
     entity_id: dc235f1bbc2db8a1015b71a1dd55f762
@@ -1037,20 +1037,12 @@
     - condition: template
       value_template: "{{\n  not wait.trigger\n}}"
     then:
-    - data:
-        message: Wait completed, no double click
-        notification_id: tst02
-      action: persistent_notification.create
     - action: switch.toggle
       metadata: {}
       data: {}
       target:
         entity_id: switch.heater_power
     else:
-    - data:
-        message: Double click
-        notification_id: tst02
-      action: persistent_notification.create
     - action: light.turn_on
       metadata: {}
       data:
@@ -1058,3 +1050,16 @@
       target:
         entity_id: light.tbr_lx
   mode: single
+- id: '1733904382184'
+  alias: Low Battery Notifications & Actions
+  description: ''
+  use_blueprint:
+    path: Blackshome/low-battery-notifications-and-actions.yaml
+    input:
+      to_do_list: todo.sysadmin
+      include_time: time_enabled
+      include_easy_notify: enable_easy_notify
+      notify_device:
+      - f661eb70466a16919d6e89912741db72
+      - 8011567734a442f837dce195f299bc15
+      notify_action_buttons: enable_to_do_list_button
