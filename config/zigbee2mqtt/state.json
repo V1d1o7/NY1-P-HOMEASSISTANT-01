@@ -1,11 +1,11 @@
 {
     "0x00158d000adbff6a": {
-        "temperature": 11.28,
-        "humidity": 66.61,
-        "pressure": 1011.1,
+        "temperature": 24.09,
+        "humidity": 43.46,
+        "pressure": 1008.3,
         "linkquality": 204,
-        "voltage": 2845,
-        "battery": 0,
+        "voltage": 2905,
+        "battery": 37,
         "power_outage_count": 113
     }
 }
