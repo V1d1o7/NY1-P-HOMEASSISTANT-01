@@ -2,206 +2,358 @@
 
 import asyncio
 import logging
-from datetime import timedelta
+import shutil
+from pathlib import Path
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_RESOURCES
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+import anyio
+from homeassistant.config_entries import (
+    SOURCE_INTEGRATION_DISCOVERY,
+    ConfigEntry,
+    ConfigEntryState,
+)
+from homeassistant.const import (
+    CONF_ACCESS_TOKEN,
+    CONF_RESOURCES,
+    CONF_TOKEN,
+)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import (
+    config_validation as cv,
+)
+from homeassistant.helpers import (
+    device_registry as dr,
+)
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_call_later
 
+from . import const
 from .const import (
+    ATTR_IMAGE_NAME,
+    ATTR_IMAGE_PATH,
+    AUTH_TYPE_PASSWORD,
+    CONF_AMAZON_CUSTOM_IMG,
+    CONF_AMAZON_CUSTOM_IMG_FILE,
     CONF_AMAZON_DAYS,
     CONF_AMAZON_DOMAIN,
     CONF_AMAZON_FWDS,
+    CONF_AUTH_TYPE,
+    CONF_FEDEX_CUSTOM_IMG,
+    CONF_FEDEX_CUSTOM_IMG_FILE,
+    CONF_FOLDER,
+    CONF_FORWARDED_EMAILS,
+    CONF_GENERIC_CUSTOM_IMG,
+    CONF_GENERIC_CUSTOM_IMG_FILE,
+    CONF_HOME_DEPOT_CUSTOM_IMG,
+    CONF_HOME_DEPOT_CUSTOM_IMG_FILE,
     CONF_IMAGE_SECURITY,
     CONF_IMAP_SECURITY,
     CONF_IMAP_TIMEOUT,
     CONF_PATH,
     CONF_SCAN_INTERVAL,
+    CONF_STORAGE,
+    CONF_UPS_CUSTOM_IMG,
+    CONF_UPS_CUSTOM_IMG_FILE,
     CONF_VERIFY_SSL,
+    CONF_WALMART_CUSTOM_IMG,
+    CONF_WALMART_CUSTOM_IMG_FILE,
     CONFIG_VER,
-    COORDINATOR,
+    DEFAULT_AMAZON_CUSTOM_IMG_FILE,
     DEFAULT_AMAZON_DAYS,
+    DEFAULT_FEDEX_CUSTOM_IMG_FILE,
+    DEFAULT_GENERIC_CUSTOM_IMG_FILE,
+    DEFAULT_HOME_DEPOT_CUSTOM_IMG_FILE,
+    DEFAULT_UPS_CUSTOM_IMG_FILE,
+    DEFAULT_WALMART_CUSTOM_IMG_FILE,
     DOMAIN,
     ISSUE_URL,
     PLATFORMS,
+    SENSOR_TYPES,
+    SIGNAL_MAILBOX_UPDATED,
+    SUMMARY_PLATFORMS,
     VERSION,
 )
-from .helpers import process_emails
+from .coordinator import (
+    MailAndPackagesConfigEntry,
+    MailAndPackagesData,
+    MailDataUpdateCoordinator,
+)
+from .migrate import async_migrate_entry
+from .summary import (
+    SummaryData,
+    is_summary_entry,
+    mailbox_entries,
+    summary_entry,
+    summary_keys,
+)
+from .utils.cache import async_remove_cache
+from .utils.image import default_image_path, hash_file
+from .views import MailAndPackagesImageView
+
+__all__ = [
+    "ATTR_IMAGE_NAME",
+    "ATTR_IMAGE_PATH",
+    "AUTH_TYPE_PASSWORD",
+    "CONFIG_VER",
+    "CONF_AMAZON_CUSTOM_IMG",
+    "CONF_AMAZON_CUSTOM_IMG_FILE",
+    "CONF_AMAZON_DAYS",
+    "CONF_AMAZON_DOMAIN",
+    "CONF_AMAZON_FWDS",
+    "CONF_AUTH_TYPE",
+    "CONF_FEDEX_CUSTOM_IMG",
+    "CONF_FEDEX_CUSTOM_IMG_FILE",
+    "CONF_FOLDER",
+    "CONF_FORWARDED_EMAILS",
+    "CONF_GENERIC_CUSTOM_IMG",
+    "CONF_GENERIC_CUSTOM_IMG_FILE",
+    "CONF_HOME_DEPOT_CUSTOM_IMG",
+    "CONF_HOME_DEPOT_CUSTOM_IMG_FILE",
+    "CONF_IMAGE_SECURITY",
+    "CONF_IMAP_SECURITY",
+    "CONF_IMAP_TIMEOUT",
+    "CONF_PATH",
+    "CONF_SCAN_INTERVAL",
+    "CONF_STORAGE",
+    "CONF_UPS_CUSTOM_IMG",
+    "CONF_UPS_CUSTOM_IMG_FILE",
+    "CONF_VERIFY_SSL",
+    "CONF_WALMART_CUSTOM_IMG",
+    "CONF_WALMART_CUSTOM_IMG_FILE",
+    "DEFAULT_AMAZON_CUSTOM_IMG_FILE",
+    "DEFAULT_AMAZON_DAYS",
+    "DEFAULT_FEDEX_CUSTOM_IMG_FILE",
+    "DEFAULT_GENERIC_CUSTOM_IMG_FILE",
+    "DEFAULT_HOME_DEPOT_CUSTOM_IMG_FILE",
+    "DEFAULT_UPS_CUSTOM_IMG_FILE",
+    "DEFAULT_WALMART_CUSTOM_IMG_FILE",
+    "DOMAIN",
+    "ISSUE_URL",
+    "PLATFORMS",
+    "VERSION",
+    "MailAndPackagesConfigEntry",
+    "MailAndPackagesData",
+    "MailDataUpdateCoordinator",
+    "async_migrate_entry",
+    "const",
+    "default_image_path",
+    "hash_file",
+]
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(
-    hass: HomeAssistant, config_entry: ConfigEntry
-):  # pylint: disable=unused-argument
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+OAUTH_TOKEN_KEYS = {
+    CONF_TOKEN,
+    CONF_ACCESS_TOKEN,
+    "refresh_token",
+    "expires_at",
+    "expires_in",
+    "auth_implementation",
+}
+
+
+async def async_setup(hass: HomeAssistant, config_entry: MailAndPackagesConfigEntry):  # pylint: disable=unused-argument
     """Disallow configuration via YAML."""
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: MailAndPackagesConfigEntry,
+) -> bool:
     """Load the saved entities."""
+    if is_summary_entry(config_entry):
+        return await _async_setup_summary(hass, config_entry)
+
     _LOGGER.info(
         "Version %s is starting, if you have any issues please report them here: %s",
         VERSION,
         ISSUE_URL,
     )
-    hass.data.setdefault(DOMAIN, {})
-    updated_config = config_entry.data.copy()
+    # Merge data and options
+    config = {**config_entry.data, **config_entry.options}
 
     # Sort the resources
-    updated_config[CONF_RESOURCES] = sorted(updated_config[CONF_RESOURCES])
+    if CONF_RESOURCES in config:
+        sorted_resources = sorted(config[CONF_RESOURCES])
+        if sorted_resources != config[CONF_RESOURCES]:
+            config[CONF_RESOURCES] = sorted_resources
+            if CONF_RESOURCES in config_entry.options:
+                hass.config_entries.async_update_entry(
+                    config_entry,
+                    options={**config_entry.options, CONF_RESOURCES: sorted_resources},
+                )
+            else:
+                hass.config_entries.async_update_entry(
+                    config_entry,
+                    data={**config_entry.data, CONF_RESOURCES: sorted_resources},
+                )
 
-    if updated_config != config_entry.data:
-        hass.config_entries.async_update_entry(config_entry, data=updated_config)
-
-    # Variables for data coordinator
-    config = config_entry.data
+    # Ensure storage directory exists
+    storage_path_str = default_image_path(hass, config_entry)
+    storage_dir = Path(hass.config.path(storage_path_str))
+    await hass.async_add_executor_job(
+        lambda: storage_dir.mkdir(parents=True, exist_ok=True)
+    )
 
     # Setup the data coordinator
-    coordinator = MailDataUpdateCoordinator(hass, config)
+    coordinator = MailDataUpdateCoordinator(hass, config, config_entry)
 
-    # Fetch initial data so we have data when entities subscribe
-    await coordinator.async_refresh()
-
-    # Raise ConfEntryNotReady if coordinator didn't update
-    if not coordinator.last_update_success:
-        _LOGGER.error("Error updating sensor data: %s", coordinator.last_exception)
-        raise ConfigEntryNotReady
-
-    hass.data[DOMAIN][config_entry.entry_id] = {
-        COORDINATOR: coordinator,
+    last_data = {
+        k: v for k, v in config_entry.data.items() if k not in OAUTH_TOKEN_KEYS
     }
+    config_entry.runtime_data = MailAndPackagesData(
+        coordinator=coordinator,
+        cameras=[],
+        last_options=dict(config_entry.options),
+        last_data=last_data,
+    )
+
+    # Fetch initial data in the background so setup doesn't block
+    hass.async_create_task(coordinator.async_refresh())
+
+    # Register HTTP view for serving images if not already registered
+    if not hass.data.setdefault(DOMAIN, {}).get("view_registered") and getattr(
+        hass, "http", None
+    ):
+        hass.http.register_view(MailAndPackagesImageView(hass))
+        hass.data[DOMAIN]["view_registered"] = True
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+
+    # Let the combined summary recalculate whenever this mailbox refreshes.
+    @callback
+    def _notify_summary() -> None:
+        async_dispatcher_send(hass, SIGNAL_MAILBOX_UPDATED)
+
+    config_entry.async_on_unload(coordinator.async_add_listener(_notify_summary))
+    _async_mailboxes_changed(hass)
+
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def _async_setup_summary(
+    hass: HomeAssistant, config_entry: MailAndPackagesConfigEntry
+) -> bool:
+    """Set up the combined "All mailboxes" summary entry."""
+    config_entry.runtime_data = SummaryData(keys=summary_keys(hass, SENSOR_TYPES))
+    await hass.config_entries.async_forward_entry_setups(
+        config_entry, SUMMARY_PLATFORMS
+    )
+    return True
+
+
+@callback
+def _async_mailboxes_changed(hass: HomeAssistant) -> None:
+    """Offer or refresh the summary after mailboxes are added or removed."""
+    summary = summary_entry(hass)
+    if summary is None:
+        if len(mailbox_entries(hass)) >= 2:
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": SOURCE_INTEGRATION_DISCOVERY},
+                    data={},
+                )
+            )
+        return
+
+    if summary.state is not ConfigEntryState.LOADED:
+        return
+    if summary.runtime_data.keys != summary_keys(hass, SENSOR_TYPES):
+        # A mailbox tracks sensors the summary does not have yet (or no longer).
+        hass.config_entries.async_schedule_reload(summary.entry_id)
+    else:
+        async_dispatcher_send(hass, SIGNAL_MAILBOX_UPDATED)
+
+
+async def update_listener(
+    hass: HomeAssistant, config_entry: MailAndPackagesConfigEntry
+) -> None:
+    """Update listener."""
+    if is_summary_entry(config_entry):
+        return
+    if config_entry.runtime_data:
+        current_non_oauth_data = {
+            k: v for k, v in config_entry.data.items() if k not in OAUTH_TOKEN_KEYS
+        }
+        if (
+            config_entry.options == config_entry.runtime_data.last_options
+            and current_non_oauth_data == config_entry.runtime_data.last_data
+        ):
+            _LOGGER.debug("Config entry update was token-only refresh; skipping reload")
+            return
+
+    _LOGGER.debug("Attempting to reload sensors from the %s integration", DOMAIN)
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+async def async_remove_config_entry_device(  # pylint: disable-next=unused-argument
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    device_entry: dr.DeviceEntry,
+) -> bool:
+    """Remove config entry from a device if its no longer present."""
+    if is_summary_entry(config_entry):
+        return True
+    return not any(
+        identifier
+        for identifier in device_entry.identifiers
+        if identifier[0] == DOMAIN
+        and config_entry.runtime_data.get_device(identifier[1])
+    )
+
+
+async def async_unload_entry(
+    hass: HomeAssistant,
+    config_entry: MailAndPackagesConfigEntry,
+) -> bool:
     """Handle removal of an entry."""
     _LOGGER.debug("Attempting to unload sensors from the %s integration", DOMAIN)
 
+    summary = is_summary_entry(config_entry)
     unload_ok = all(
         await asyncio.gather(
             *[
                 hass.config_entries.async_forward_entry_unload(config_entry, platform)
-                for platform in PLATFORMS
-            ]
-        )
+                for platform in (SUMMARY_PLATFORMS if summary else PLATFORMS)
+            ],
+        ),
     )
 
     if unload_ok:
         _LOGGER.debug("Successfully removed sensors from the %s integration", DOMAIN)
-        hass.data[DOMAIN].pop(config_entry.entry_id)
+        if not summary:
+            # Recalculate once this entry is no longer loaded.
+            async_call_later(
+                hass, 1, callback(lambda _now: _async_mailboxes_changed(hass))
+            )
 
     return unload_ok
 
 
-async def async_migrate_entry(hass, config_entry):
-    """Migrate an old config entry."""
-    version = config_entry.version
-    new_version = CONFIG_VER
+async def async_remove_entry(
+    hass: HomeAssistant,
+    config_entry: MailAndPackagesConfigEntry,
+) -> None:
+    """Handle removal of an entry and clean up its storage directory."""
+    if is_summary_entry(config_entry):
+        return
 
-    _LOGGER.debug("Migrating from version %s", version)
-    updated_config = {**config_entry.data}
+    await async_remove_cache(hass, config_entry.entry_id)
 
-    # 1 -> 4: Migrate format
-    if version == 1:
-        if CONF_AMAZON_FWDS in updated_config.keys():
-            if not isinstance(updated_config[CONF_AMAZON_FWDS], list):
-                updated_config[CONF_AMAZON_FWDS] = [
-                    x.strip() for x in updated_config[CONF_AMAZON_FWDS].split(",")
-                ]
-            else:
-                updated_config[CONF_AMAZON_FWDS] = []
-        else:
-            _LOGGER.warning("Missing configuration data: %s", CONF_AMAZON_FWDS)
-
-        # Force path change
-        updated_config[CONF_PATH] = "custom_components/mail_and_packages/images/"
-
-        # Always on image security
-        if not config_entry.data[CONF_IMAGE_SECURITY]:
-            updated_config[CONF_IMAGE_SECURITY] = True
-
-        # Add default Amazon Days configuration
-        updated_config[CONF_AMAZON_DAYS] = DEFAULT_AMAZON_DAYS
-
-    # 2 -> 4
-    if version <= 2:
-        # Force path change
-        updated_config[CONF_PATH] = "custom_components/mail_and_packages/images/"
-
-        # Always on image security
-        if not config_entry.data[CONF_IMAGE_SECURITY]:
-            updated_config[CONF_IMAGE_SECURITY] = True
-
-        # Add default Amazon Days configuration
-        updated_config[CONF_AMAZON_DAYS] = DEFAULT_AMAZON_DAYS
-
-    if version <= 3:
-        # Add default Amazon Days configuration
-        updated_config[CONF_AMAZON_DAYS] = DEFAULT_AMAZON_DAYS
-
-    if version <= 4:
-        if CONF_AMAZON_FWDS in updated_config and updated_config[CONF_AMAZON_FWDS] == [
-            '""'
-        ]:
-            updated_config[CONF_AMAZON_FWDS] = []
-
-    if version <= 5:
-        if CONF_VERIFY_SSL not in updated_config:
-            updated_config[CONF_VERIFY_SSL] = True
-
-    if version <= 6:
-        if CONF_IMAP_SECURITY not in updated_config:
-            updated_config[CONF_IMAP_SECURITY] = "SSL"
-
-    if version <= 7:
-        if CONF_AMAZON_DOMAIN not in updated_config:
-            updated_config[CONF_AMAZON_DOMAIN] = "amazon.com"
-
-    if CONF_PATH not in updated_config:
-        updated_config[CONF_PATH] = "custom_components/mail_and_packages/images/"
-
-    if updated_config != config_entry.data:
-        hass.config_entries.async_update_entry(
-            config_entry, data=updated_config, version=new_version
+    storage_path_str = default_image_path(hass, config_entry)
+    storage_dir = Path(hass.config.path(storage_path_str))
+    if await anyio.Path(storage_dir).exists():
+        _LOGGER.debug(
+            "Removing image directory for entry %s: %s",
+            config_entry.entry_id,
+            storage_dir,
         )
-
-    _LOGGER.debug("Migration complete to version %s", new_version)
-
-    return True
-
-
-class MailDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching mail data."""
-
-    def __init__(self, hass, config):
-        """Initialize."""
-        self.interval = timedelta(minutes=config.get(CONF_SCAN_INTERVAL))
-        self.name = f"Mail and Packages ({config.get(CONF_HOST)})"
-        self.timeout = config.get(CONF_IMAP_TIMEOUT)
-        self.config = config
-        self.hass = hass
-        self._data = {}
-
-        _LOGGER.debug("Data will be update every %s", self.interval)
-
-        super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
-
-    async def _async_update_data(self):
-        """Fetch data."""
-        async with asyncio.timeout(self.timeout):
-            try:
-                data = await self.hass.async_add_executor_job(
-                    process_emails, self.hass, self.config
-                )
-            except Exception as error:
-                _LOGGER.error("Problem updating sensors: %s", error)
-                raise UpdateFailed(error) from error
-
-            if data:
-                self._data = data
-            return self._data
+        await hass.async_add_executor_job(
+            lambda: shutil.rmtree(storage_dir, ignore_errors=True)
+        )

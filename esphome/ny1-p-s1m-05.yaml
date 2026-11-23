@@ -1,0 +1,10 @@
+substitutions:
+  device_name: "ny1-p-s1m-05"
+  frontend_name: "MBR Closet LX"
+  light_name: "MBR Closet Light"
+  area: "MBR"
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+
+packages:
+  device_base: !include Base_Confs/Shelly1_mini_g3_LIGHT.yaml

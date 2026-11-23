@@ -4,8 +4,8 @@
 #                                                  #
 ####################################################
 esphome:
-  name: ny1-p-aircon-01
-  friendly_name: NY1-P-AIRCON-01
+  name: ${name}
+  friendly_name: ${friendly_name}
 
 packages:
   wifi: !include wifi.yaml
@@ -18,8 +18,7 @@ esp32:
 uart:
  id: HP_UART
  baud_rate: 2400
- tx_pin: GPIO17
- rx_pin: GPIO16
+ tx_pin: GPIO1                                                                                                                                                                                    
 
 # ota:
 #   platform: esphome # Required for ESPhome 2024.6.0 and greater
@@ -99,9 +98,12 @@ climate:
         current_temperature: 1.0
     outside_air_temperature_sensor:
       name: Outside Air Temperature
+      disabled_by_default: true
     vertical_vane_select:
       name: Vertical Vane
-    remote_temperature_timeout: 30min
+    supports:
+      swing_mode: ["OFF", VERTICAL]    
+    remote_temperature_timeout: 15min
     debounce_delay : 500ms
 
 # Sync time with Home Assistant.

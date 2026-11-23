@@ -8,12 +8,54 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 mqtt: !include mqtt.yaml
-sensor: !include sensors.yaml
-binary_sensor: !include binary.yaml
-switch: !include switches.yaml
+# sensor: !include sensors.yaml
+# switch: !include switches.yaml
 command_line: !include CL.yaml
 cover: !include covers.yaml
 light: !include lights.yaml
+template:
+  - !include templates.yaml
+  - !include binary.yaml
+  - !include sensors.yaml
+  - !include switches.yaml
+  - !include weather.yaml
+sensor:
+  - platform: mqtt_room # "Guest Keys Discovery"
+    name: "Guest_Keys"
+    device_id: iBeacon:426c7565-4368-6172-6d42-6561636f6e73-3838-1341
+    state_topic: espresense/devices/iBeacon:426c7565-4368-6172-6d42-6561636f6e73-3838-1341
+    away_timeout: 60
+    unique_id: jslTXu
+
+  - platform: rest
+    name: main_sensor_name
+    unique_id: main_sensor_name
+    method: GET
+    resource: "https://api.todoist.com/api/v1/projects/TODOIST_PROJECT_ID/full"
+    headers:
+        Authorization: !secret todoist_api_token2     # must include "Bearer <token>" inside the secret
+        Accept: application/json
+    value_template: "{{ value_json.project.id }}"
+    json_attributes:
+        - project
+        - tasks
+        - sections
+    scan_interval: 10
+
+  - platform: rest
+    name: comments_sensor
+    unique_id: comments_sensor
+    method: GET
+    resource: "https://api.todoist.com/api/v1/comments"
+    params:
+        project_id: "TODOIST_PROJECT_ID"
+    headers:
+        Authorization: !secret todoist_api_token2
+        Accept: application/json
+    value_template: "{{ value_json.results | length }}"
+    json_attributes:
+        - results
+    scan_interval: 10
 # input_select: !include input-select.yaml
 
 ## ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -24,6 +66,11 @@ input_boolean:
   weebo_cleaned:
     name: Weebo Cleaned?
     icon: mdi:robot_vacuum
+  # ON = common bathroom wall switches act as normal ("dumb") switches
+  # OFF = smart remapping (see esphome/ny1-p-2pm-01.yaml & ny1-p-s1m-02.yaml)
+  common_bathroom_default_switches:
+    name: Common Bathroom Default Switches
+    icon: mdi:light-switch
 
 ## ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ## API
@@ -35,39 +82,37 @@ spotcast:
 ## ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ## OTHER
 ## ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-anniversaries:
-  sensors:
-    - name: Count Down 1
-      date_template: "{{ states('input_datetime.count_down_1') }}"
-      one_time: true
-      id_prefix: ""
+# anniversaries:
+#   sensors:
+#     - name: Count Down 1
+#       date_template: "{{ states('input_datetime.count_down_1') }}"
+#       one_time: true
+#       id_prefix: ""
 
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - !secret trusted_proxies
-  ip_ban_enabled: true
-  login_attempts_threshold: 3
+# http: settings now live in the UI (Settings > System > Network) since 2026.11
 
 notify:
   - name: "Phones"
     platform: group
     services:
-      - service: mobile_app_tristan_s_s21
-      - service: mobile_app_s8mobile_app_galaxy_watch5_pro_ayrt
+      - service: mobile_app_tristans_s22
+      - service: mobile_app_galaxy_watch5_ayrt
   - name: "Tristan"
     platform: group
     services:
-      - service: mobile_app_tristan_s_s21
-      - service: mobile_app_s8mobile_app_galaxy_watch5_pro_ayrt
+      - service: mobile_app_tristans_s22
+      - service: mobile_app_galaxy_watch5_ayrt
       - service: persistent_notification
 
 camera:
-  - platform: local_file
-    file_path: /home/homeassistant/.homeassistant/custom_components/mail_and_packages/mail_none.gif
-    name: mail_usps
-
-zha_toolkit:
+  # - platform: local_file
+  #   file_path: /home/homeassistant/.homeassistant/custom_components/mail_and_packages/mail_none.gif
+  #   name: mail_usps
+  # - platform: vivotek
+  #   ip_address: !secret vivotekcamip
+  #   username: !secret vivotekusr
+  #   password: !secret vivotekcampass
+  #   authentication: digest
 
 # rest_command:
 #   todoist:
@@ -82,12 +127,12 @@ climate:
   - platform: generic_thermostat
     name: Bedroom Heater
     heater: switch.heater_power
-    target_sensor: sensor.tbr_weather_temperature
+    target_sensor: sensor.common_bathroom_temperature
     min_cycle_duration: 00:05
     cold_tolerance: 2
     hot_tolerance: 1
     min_temp: 65
-    max_temp: 80
+    max_temp: 72
   # - platform: generic_thermostat
   #   name: Bedroom CS300
   #   heater: switch.heater_power
@@ -98,21 +143,23 @@ climate:
   #   min_temp: 65
   #   max_temp: 80
 
-weather:
-  - platform: template
-    name: "TBR"
-    condition_template: "{{ states('weather.pw_bk') }}"
-    temperature_template: "{{ states('sensor.tbr_weather_temperature') | float }}"
-    temperature_unit: "°F"
-    humidity_template: "{{ states('sensor.tbr_weather_humidity') | float }}"
-    forecast_daily_template: "{{ state_attr('weather.my_region', 'forecast_data') }}"
-    pressure_template: "{{ states('sensor.tbr_weather_pressure')  | float }}"
+# weather:
+#   - platform: template
+#     name: "TBR"
+#     condition_template: "{{ states('weather.pw_bk') }}"
+#     temperature_template: "{{ states('sensor.tbr_weather_temperature') | float | round(1) }}"
+#     temperature_unit: "°F"
+#     humidity_template: "{{ states('sensor.tbr_weather_humidity') | float }}"
+#     forecast_daily_template: "{{ state_attr('weather.my_region', 'forecast_data') }}"
+#     pressure_template: "{{ states('sensor.tbr_weather_pressure')  | float }}"
 
 rest_command:
-  todoist:
-    method: post
-    url: "https://api.todoist.com/sync/v9/{{ url }}"
-    payload: "{{ payload }}"
-    headers:
-      Authorization: !secret todoist_api_token2
-    content_type: "application/x-www-form-urlencoded"
+    todoist:
+        method: post
+        url: 'https://api.todoist.com/api/v1/{{ url }}'
+        payload: '{{ payload }}'
+        headers:
+            Authorization: !secret todoist_api_token2
+            content_type: 'application/x-www-form-urlencoded'
+
+

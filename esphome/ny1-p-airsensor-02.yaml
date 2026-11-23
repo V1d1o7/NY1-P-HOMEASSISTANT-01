@@ -2,6 +2,9 @@ esphome:
   name: ny1_p_airsensor-02
   friendly_name: NY1-P-AIRSENSOR-02
 
+packages:
+  diagnostics: !include Base_Confs/diagnostics.yaml
+
 esp8266:
   board: d1_mini
 

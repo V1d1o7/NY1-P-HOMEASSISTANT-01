@@ -1030,5 +1030,9 @@ config:
         type: bullets
       start_card: 1
       type: custom:swipe-card
+    - entity: climate.ny1_p_aircon_02_ny1_p_aircon_02
+      type: custom:mini-climate
+    - entity: climate.ny1_p_aircon_01
+      type: custom:mini-climate
     path: test
     title: test

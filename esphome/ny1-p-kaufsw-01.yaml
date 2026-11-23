@@ -1,7 +1,7 @@
 substitutions:
   name: "ny1-p-kaufsw-01"
-  hass_entity_single_press_toggle: "light.kaufsw_lx_group"
-  hass_entity_double_press_toggle: "light.rgbw2_01"
+  hass_entity_single_press_toggle: "light.small_room_lx"
+  # hass_entity_double_press_toggle: "light.rgbw2_01"
 packages:
   Kauf.RGBSw: github://KaufHA/kauf-rgb-switch/kauf-rgbs-4m.yaml
 esphome:

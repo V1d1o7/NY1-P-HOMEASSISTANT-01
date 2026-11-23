@@ -1,0 +1,427 @@
+"""Generic Shipper class."""
+
+from __future__ import annotations
+
+import email
+import logging
+from email.header import decode_header
+from pathlib import Path
+from shutil import copyfile
+from typing import Any
+
+import anyio
+from aioimaplib import IMAP4_SSL
+from homeassistant.util import dt as dt_util
+
+from custom_components.mail_and_packages.const import (
+    ATTR_COUNT,
+    ATTR_EMAIL,
+    ATTR_SUBJECT,
+    ATTR_TRACKING,
+    SENSOR_DATA,
+)
+from custom_components.mail_and_packages.shippers.base import Shipper
+from custom_components.mail_and_packages.utils.cache import EmailCache
+from custom_components.mail_and_packages.utils.email import find_text, find_text_matches
+from custom_components.mail_and_packages.utils.gls_us import download_gls_us_pod
+from custom_components.mail_and_packages.utils.imap import (
+    email_fetch,
+    email_fetch_headers,
+    email_search,
+)
+from custom_components.mail_and_packages.utils.shipper import (
+    generic_delivery_image_extraction,
+    get_tracking,
+)
+
+from .batch import GenericBatchMixin
+from .helpers import (
+    SearchContext,
+    _find_carrier_number,
+)
+from .helpers import (
+    _check_amazon_mentions as helper_check_amazon_mentions,
+)
+from .helpers import (
+    _collect_carrier_tracking as helper_collect_carrier_tracking,
+)
+from .helpers import (
+    _copy_generic_placeholder as helper_copy_generic_placeholder,
+)
+from .helpers import (
+    _decode_subject as helper_decode_subject,
+)
+from .helpers import (
+    _extract_images_for_shipper as helper_extract_images_for_shipper,
+)
+from .helpers import (
+    _extract_subject_from_headers as helper_extract_subject_from_headers,
+)
+from .helpers import (
+    _filter_emails_by_date as helper_filter_emails_by_date,
+)
+from .helpers import (
+    _filter_unique_ids as helper_filter_unique_ids,
+)
+from .helpers import (
+    _merge_shopify_store_deliveries as helper_merge_shopify_store_deliveries,
+)
+from .helpers import (
+    _process_emails_by_type as helper_process_emails_by_type,
+)
+from .helpers import (
+    _process_tracking_numbers as helper_process_tracking_numbers,
+)
+from .helpers import (
+    _setup_image_extraction as helper_setup_image_extraction,
+)
+from .helpers import (
+    _verify_matched_subjects as helper_verify_matched_subjects,
+)
+from .pickup import parse_pickup, summarize_pickups
+from .search import GenericSearchMixin
+
+_LOGGER = logging.getLogger(__name__)
+
+# Re-exports for test compatibility and patch targets
+__all__ = [
+    "GenericBatchMixin",
+    "GenericSearchMixin",
+    "GenericShipper",
+    "Path",
+    "SearchContext",
+    "_find_carrier_number",
+    "anyio",
+    "copyfile",
+    "decode_header",
+    "download_gls_us_pod",
+    "email",
+    "email_fetch",
+    "email_fetch_headers",
+    "email_search",
+    "find_text",
+    "find_text_matches",
+    "generic_delivery_image_extraction",
+    "get_tracking",
+]
+
+
+class GenericShipper(GenericBatchMixin, GenericSearchMixin, Shipper):
+    """Generic Shipper class for UPS, FedEx, Walmart, etc."""
+
+    @property
+    def name(self) -> str:
+        """Return the internal name of the shipper."""
+        return "generic"
+
+    @classmethod
+    def handles_sensor(cls, sensor_type: str) -> bool:
+        """Return True if this shipper handles the given sensor type."""
+        return sensor_type in SENSOR_DATA
+
+    @staticmethod
+    async def _pickup_details(account, cache, found_data):
+        """Read matched pickup messages and summarize their current state."""
+        events = []
+        for ids in found_data:
+            for email_id in ids.split():
+                _, messages = (
+                    await cache.fetch(email_id, "(RFC822)", shipper="usps_pickup")
+                    if cache
+                    else await email_fetch(account, email_id, "(RFC822)")
+                )
+                for raw_message in messages:
+                    if isinstance(raw_message, (bytes, bytearray)):
+                        if event := parse_pickup(raw_message):
+                            events.append(event)
+        return summarize_pickups(events, dt_util.now().date())
+
+    async def process(
+        self,
+        account: IMAP4_SSL,
+        date: str,
+        sensor_type: str,
+        cache: EmailCache | None = None,
+        since_date: str | None = None,
+    ) -> dict[str, Any]:
+        """Process emails for this shipper on the given date.
+
+        since_date: if provided, used instead of date for _delivering and
+        _exception sensors so that emails from previous days are included.
+        """
+        _LOGGER.debug("Processing generic sensor: %s", sensor_type)
+
+        if sensor_type not in SENSOR_DATA:
+            _LOGGER.error("Sensor %s not found in SENSOR_DATA", sensor_type)
+            return {ATTR_COUNT: 0}
+
+        config = SENSOR_DATA[sensor_type]
+        email_addresses = config.get(ATTR_EMAIL, [])
+        subjects = config.get(ATTR_SUBJECT, [])
+
+        if sensor_type.endswith("_packages") and not email_addresses and not subjects:
+            _LOGGER.debug(
+                "Skipping email search for %s: no email addresses configured",
+                sensor_type,
+            )
+            return {ATTR_COUNT: 0, ATTR_TRACKING: []}
+
+        forwarding_header, email_addresses = self._resolve_forwarding(email_addresses)
+        is_delivered = sensor_type.endswith("_delivered")
+        search_date = self._determine_search_date(sensor_type, date, since_date)
+        result: dict[str, Any] = {ATTR_COUNT: 0, ATTR_TRACKING: []}
+
+        if not email_addresses:
+            _LOGGER.debug(
+                "Skipping email search for %s: no email addresses configured",
+                sensor_type,
+            )
+            return result
+
+        image_path = self.config.get("image_path")
+        shipper_cfg = await self._setup_image_extraction(sensor_type, image_path)
+        search_ctx = SearchContext(
+            sensor_type=sensor_type,
+            config=config,
+            shipper_cfg=shipper_cfg,
+            result=result,
+            cache=cache,
+            forwarding_header=forwarding_header,
+        )
+
+        count, found_data, image_found = await self._search_for_emails(
+            account,
+            email_addresses,
+            search_date,
+            subjects,
+            search_ctx,
+        )
+
+        result[ATTR_TRACKING] = await self._process_tracking_numbers(
+            sensor_type,
+            found_data,
+            account,
+            cache,
+        )
+        if result[ATTR_TRACKING]:
+            count = len(result[ATTR_TRACKING])
+
+        result.update(
+            await self._collect_carrier_tracking(
+                sensor_type, found_data, account, cache
+            )
+        )
+
+        if is_delivered:
+            result["pre_filtered_tracking"] = result.get(ATTR_TRACKING, [])
+            if since_date and search_date != date:
+                count = await self._process_delivered_today(
+                    account, date, search_ctx, result, found_data
+                )
+
+        if is_delivered and not image_found:
+            image_found = await self._fetch_carrier_photo(shipper_cfg, result)
+
+        if sensor_type == "usps_pickup":
+            result["usps_pickup_details"] = await self._pickup_details(
+                account, cache, found_data
+            )
+            count = result["usps_pickup_details"]["packages"] or 0
+
+        if sensor_type == "shopify_delivered":
+            count = await self._apply_shopify_store_merge(
+                account,
+                date,
+                since_date,
+                search_date,
+                search_ctx,
+                result,
+                found_data,
+                count,
+            )
+
+        result[ATTR_COUNT] = count
+        await self._finalize_shipper_image(shipper_cfg, image_path, image_found, result)
+        return result
+
+    async def _merge_shopify_store_deliveries(
+        self,
+        account: IMAP4_SSL,
+        date: str,
+        since_date: str | None,
+        ctx: SearchContext,
+        result: dict[str, Any],
+        found_data: list,
+        count: int,
+    ) -> int:
+        """Delegate to the helpers implementation."""
+        return await helper_merge_shopify_store_deliveries(
+            account, date, since_date, ctx, result, found_data, count
+        )
+
+    async def _apply_shopify_store_merge(
+        self,
+        account: IMAP4_SSL,
+        date: str,
+        since_date: str | None,
+        search_date: str,
+        search_ctx: SearchContext,
+        result: dict[str, Any],
+        found_data: list,
+        count: int,
+    ) -> int:
+        """Merge Shopify store-domain deliveries into a delivered result.
+
+        When a wider window was searched, the today-only delivered view
+        is recomputed over the merged (sender-based + store) email set.
+        """
+        count = await self._merge_shopify_store_deliveries(
+            account,
+            date,
+            since_date,
+            search_ctx,
+            result,
+            found_data,
+            count,
+        )
+        if since_date and search_date != date:
+            result["pre_filtered_tracking"] = result.get(ATTR_TRACKING, [])
+            count = await self._process_delivered_today(
+                account, date, search_ctx, result, found_data
+            )
+        return count
+
+    async def _fetch_carrier_photo(
+        self, shipper_cfg: dict[str, Any] | None, result: dict[str, Any]
+    ) -> bool:
+        """Fetch a delivery photo from the carrier when the emails carry none."""
+        if not shipper_cfg or shipper_cfg.get("photo_source") != "gls_us":
+            return False
+        return await download_gls_us_pod(
+            self.hass,
+            result.get(ATTR_TRACKING) or [],
+            shipper_cfg["image_path"],
+            shipper_cfg["name"],
+            shipper_cfg["image_name"],
+        )
+
+    async def _copy_generic_placeholder(self, shipper_cfg: dict[str, Any]) -> None:
+        """Copy the generic placeholder for the shipper."""
+        await helper_copy_generic_placeholder(self.hass, shipper_cfg)
+
+    async def _setup_image_extraction(
+        self,
+        sensor_type: str,
+        image_path: str,
+    ) -> dict | None:
+        """Set up image extraction configuration."""
+        return await helper_setup_image_extraction(
+            self.hass, self.config, sensor_type, image_path
+        )
+
+    def _decode_subject(self, header_part: bytes | bytearray) -> str | None:
+        """Decode MIME encoded subject from email header part."""
+        return helper_decode_subject(header_part)
+
+    def _extract_subject_from_headers(
+        self,
+        header_data: list[Any],
+        sensor_type: str,
+        eid: bytes,
+        expected_subjects_lower: list[str],
+    ) -> bool:
+        """Check if any header part matches the expected subjects."""
+        return helper_extract_subject_from_headers(
+            header_data, sensor_type, eid, expected_subjects_lower
+        )
+
+    async def _verify_matched_subjects(
+        self,
+        account: IMAP4_SSL,
+        email_ids: list[bytes],
+        sensor_type: str,
+        expected_subjects: list[str],
+        cache: EmailCache | None = None,
+    ) -> list[bytes]:
+        """Verify the subject of each matched email locally and log for debugging."""
+        return await helper_verify_matched_subjects(
+            account, email_ids, sensor_type, expected_subjects, self.name, cache
+        )
+
+    def _filter_unique_ids(
+        self, email_ids: list[bytes], unique_email_ids: set
+    ) -> list[bytes]:
+        """Filter out already processed email IDs."""
+        return helper_filter_unique_ids(email_ids, unique_email_ids)
+
+    async def _process_tracking_numbers(
+        self,
+        sensor_type: str,
+        found_data: list,
+        account: IMAP4_SSL,
+        cache: EmailCache | None = None,
+    ) -> list:
+        """Process tracking numbers for the sensor."""
+        return await helper_process_tracking_numbers(
+            sensor_type, found_data, account, cache
+        )
+
+    async def _collect_carrier_tracking(
+        self,
+        sensor_type: str,
+        found_data: list,
+        account: IMAP4_SSL,
+        cache: EmailCache | None = None,
+    ) -> dict[str, dict]:
+        """Map marketplace tracking id -> embedded carrier tracking number."""
+        return await helper_collect_carrier_tracking(
+            sensor_type, found_data, account, cache
+        )
+
+    async def _process_emails_by_type(
+        self,
+        account: IMAP4_SSL,
+        config: dict,
+        ids: list,
+        current_count: int,
+        cache: EmailCache | None = None,
+    ) -> tuple[int, list]:
+        """Process emails based on body search or just count."""
+        return await helper_process_emails_by_type(
+            account, config, ids, current_count, cache
+        )
+
+    async def _extract_images_for_shipper(
+        self,
+        account: IMAP4_SSL,
+        ids: list,
+        s_config: dict,
+        cache: EmailCache | None = None,
+    ) -> bool:
+        """Extract delivery images from emails."""
+        return await helper_extract_images_for_shipper(
+            self.hass, account, ids, s_config, self.name, cache
+        )
+
+    async def _check_amazon_mentions(
+        self,
+        account: IMAP4_SSL,
+        ids: list,
+        result: dict,
+        cache: EmailCache | None = None,
+    ) -> None:
+        """Check for Amazon mentions in emails."""
+        await helper_check_amazon_mentions(account, ids, result, cache)
+
+    async def _filter_emails_by_date(
+        self,
+        account: IMAP4_SSL,
+        email_ids: list[bytes],
+        target_date_str: str,
+        shipper_name: str,
+        cache: EmailCache | None = None,
+    ) -> list[bytes]:
+        """Filter email IDs to those sent on target_date."""
+        return await helper_filter_emails_by_date(
+            account, email_ids, target_date_str, shipper_name, cache
+        )

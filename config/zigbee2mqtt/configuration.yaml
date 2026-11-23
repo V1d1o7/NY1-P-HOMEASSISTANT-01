@@ -1,46 +1,60 @@
-homeassistant: true
+homeassistant:
+  enabled: true
+  legacy_action_sensor: true
 advanced:
-  network_key:
-    - 56
-    - 38
-    - 132
-    - 250
-    - 74
-    - 48
-    - 219
-    - 190
-    - 174
-    - 203
-    - 14
-    - 67
-    - 13
-    - 74
-    - 94
-    - 108
-  pan_id: 13784
-  ext_pan_id:
-    - 15
-    - 86
-    - 136
-    - 211
-    - 74
-    - 32
-    - 20
-    - 123
   homeassistant_legacy_entity_attributes: false
+  homeassistant_legacy_triggers: false
   legacy_api: false
   legacy_availability_payload: false
+  network_key: !secret network_key
 mqtt:
-  server: mqtt://core-mosquitto:1883
-  user: addons
-  password: mooph2fiethaeb8Loorei5sho8vahtae3vuibai4nee1jaeZ1ooch9ath3nizu9p
+  server: !secret mqtt_server
+  user: !secret mqtt_user
+  password: !secret mqtt_password
 frontend:
+  enabled: true
   port: 8099
 device_options:
-  legacy: false
-permit_join: true
+  legacy: true
 devices:
-  '0x00158d000adbff6a':
-    friendly_name: Outside Enviro
+  "0x00158d000ad8aaaa":
+    friendly_name: TBR Button
+    homeassistant:
+      name: TBR Button
+    optimistic: true
+  "0x00158d0009760924":
+    friendly_name: Front Door
+  "0x00158d000af381bf":
+    friendly_name: Closet Door
+  "0x282c02bfffe6f86a":
+    friendly_name: Zigbee Repeater
+  "0x00158d000ad8bc55":
+    friendly_name: Foot Switch
+  "0x00158d0007efa501":
+    friendly_name: Sample Enviro
+  "0x00158d000ad9f48e":
+    friendly_name: Common Bathroom
+  "0x282c02bfffec65e7":
+    friendly_name: Zigbee Repeater 2
+    homeassistant:
+      name: NY1-P-ZRPTR-02
+    optimistic: true
+  "0xb4e3f9fffe7569c4":
+    friendly_name: Living Room Button
+  "0x00158d000adc32a4":
+    friendly_name: LR Enviro
+  "0x00158d0009ef836c":
+    friendly_name: TBR_Weather
+  "0x00158d000af0c3ba":
+    friendly_name: TBR Door
+  "0x00158d000adbff6a":
+    friendly_name: Clark Enviro
+  "0x00158d000ad7ebf3":
+    friendly_name: bathroom_door_state
+  "0x00158d000926fd82":
+    friendly_name: Work Bench Power
 serial:
+  adapter: ezsp
   port: /dev/ttyUSB1
+  rtscts: true
+version: 5

@@ -1,0 +1,160 @@
+####################################################
+#                                                  #
+#             ESP Core Information                 #
+#                                                  #
+####################################################
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+packages:
+  wifi: !include wifi.yaml
+  diagnostics: !include diagnostics.yaml
+
+# For ESP32 Devices
+esp32:
+ board: esp32dev
+ framework:
+   type: esp-idf    
+
+uart:
+  id: HP_UART
+  baud_rate: 2400
+  tx_pin: GPIO17
+  rx_pin:
+    number: GPIO16
+    mode: 
+      pullup: true
+      input: true                                                                                                                                                                                   
+
+# Enable Home Assistant API
+api:
+  # encryption:
+  #   key: !secret api_encryption_key
+  services:
+    - service: set_remote_temperature
+      variables:
+        temperature: float
+      then:
+        - lambda: 'id(hp).set_remote_temperature(temperature);'
+    - service: use_internal_temperature
+      then:
+        - lambda: 'id(hp).set_remote_temperature(0);'  
+
+# Default logging level
+logger:
+  baud_rate: 0
+  level: INFO
+  logs:
+    EVT_SETS : INFO
+    WIFI : INFO
+    MQTT : INFO
+    WRITE_SETTINGS : INFO
+    SETTINGS : INFO
+    STATUS : INFO
+    CN105Climate: WARN
+    CN105: INFO
+    climate: WARN
+    sensor: WARN
+    chkSum : INFO
+    WRITE : INFO
+    READ : WARN
+    Header: INFO
+    Decoder : INFO
+    CONTROL_WANTED_SETTINGS: INFO
+
+external_components:
+  - source: github://echavet/MitsubishiCN105ESPHome
+
+####################################################
+#                                                  #
+#              Climate Configuration               #
+#                                                  #
+####################################################
+
+# Climate entity configuration
+climate:
+  - platform: cn105
+    id: hp
+    name: none
+    update_interval: 1300ms 
+    icon: mdi:heat-pump
+    visual:
+      min_temperature: 17
+      max_temperature: 31
+      temperature_step:
+        target_temperature: 1.0
+        current_temperature: 1.0
+    outside_air_temperature_sensor:
+      name: Outside Air Temperature
+      disabled_by_default: true
+    vertical_vane_select:
+      name: Vertical Vane
+    supports:
+      swing_mode: ["OFF", VERTICAL]    
+    remote_temperature_timeout: 15min
+    debounce_delay : 500ms
+
+# Sync time with Home Assistant.
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+####################################################
+#                                                  #
+#                     Sensors                      #
+#                                                  #
+####################################################
+
+# Uptime, version, WiFi signal & restart come from diagnostics.yaml
+
+sensor:
+  - platform: template
+    name: "dg_uart_connected"
+    entity_category: DIAGNOSTIC
+    lambda: |-
+      return (bool) id(hp).isUARTReady_();
+      // return (bool) id(hp).isUARTConnected_;
+    update_interval: 30s
+
+  # External Temp Sensor.
+  - platform: homeassistant
+    name: "Remote Temperature Sensor"
+    entity_id: ${remote_temp_sensor} # Replace with your HomeAssistant remote sensor entity id, or include in substitutions
+    internal: false
+    disabled_by_default: true
+    device_class: temperature
+    state_class: measurement
+    unit_of_measurement: "°C"
+    filters:
+      # Uncomment the lambda line to convert F to C on incoming temperature
+    # - lambda: return (x - 32) * (5.0/9.0);
+      - clamp: # Limits values to range accepted by Mitsubishi units
+          min_value: 17
+          max_value: 31
+          ignore_out_of_range: true
+      - throttle: 30s
+    on_value:
+      then:
+        - logger.log:
+            level: INFO
+            format: "Remote temperature received from HA: %.1f C"
+            args: ["x"]
+        - lambda: "id(hp).set_remote_temperature(x);"
+  - platform: homeassistant
+    id: outside_temp
+    name: Outside Temp
+    entity_id: ${outside_temp_sensor}
+    accuracy_decimals: 1
+    internal: false
+
+####################################################
+#                                                  #
+#           Controls and Config Options            #
+#                                                  #
+####################################################
+
+light:
+  - platform: status_led
+    name: "Blue LED"
+    pin: GPIO02

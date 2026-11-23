@@ -1,5 +1,6 @@
 substitutions:
-  name: "kauf-bulb-482614"
+  name: ny1-p-kaufb-02
+  friendly_name: KAUFB-02
 packages:
   Kauf.RGBWW: github://KaufHA/kauf-rgbww-bulbs/kauf-bulb.yaml
 esphome:

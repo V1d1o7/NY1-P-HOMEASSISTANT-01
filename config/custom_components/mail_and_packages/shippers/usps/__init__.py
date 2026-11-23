@@ -1,0 +1,517 @@
+"""USPS Shipper class."""
+
+from __future__ import annotations
+
+import contextlib
+import email
+import email.utils
+import logging
+import re
+import shutil
+from datetime import date, datetime
+from email.errors import HeaderParseError
+from email.header import decode_header, make_header
+from pathlib import Path
+from typing import Any
+
+import anyio
+from aioimaplib import IMAP4_SSL
+
+from custom_components.mail_and_packages.const import (
+    ASSET_ROOT,
+    ATTR_COUNT,
+    ATTR_EMAIL,
+    ATTR_GRID_IMAGE_NAME,
+    ATTR_HAS_MAIL_IMAGES,
+    ATTR_IMAGE_PATH,
+    ATTR_SCANNED_IMAGES,
+    ATTR_SUBJECT,
+    ATTR_UNSCANNED_PIECES,
+    ATTR_USPS_IMAGE,
+    ATTR_USPS_MAIL,
+    CONF_CUSTOM_IMG_FILE,
+    CONF_DURATION,
+    CONF_FORWARDING_HEADER,
+    CONF_GENERATE_GRID,
+    CONF_GENERATE_MP4,
+    CONF_USPS_PLACEHOLDER,
+    DEFAULT_CUSTOM_IMG_FILE,
+    SENSOR_DATA,
+)
+from custom_components.mail_and_packages.shippers.base import Shipper
+from custom_components.mail_and_packages.utils.cache import EmailCache
+from custom_components.mail_and_packages.utils.date import (
+    get_formatted_date,
+    get_today,
+)
+from custom_components.mail_and_packages.utils.image import (
+    _generate_mp4,
+    cleanup_images,
+    copy_overlays,
+    default_image_path,
+    generate_delivery_gif,
+    generate_grid_img,
+    resize_images,
+)
+from custom_components.mail_and_packages.utils.imap import email_fetch, email_search
+
+from .image import extract_jpeg_attachment, extract_usps_images
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def extract_digest_target_date(subject: str | None, current_date: date) -> date | None:
+    """Extract delivery date for USPS Daily Digest from subject line if present."""
+    if not subject:
+        return None
+    candidates: list[date] = []
+    # e.g., "Your Daily Digest for Sat, Nov 21" or "Your Daily Digest for Mon, Oct 31"
+    match = re.search(
+        r"Your Daily Digest for [A-Za-z]+,?\s+([A-Za-z]+)\s+(\d{1,2})",
+        subject,
+        re.IGNORECASE,
+    )
+    if match:
+        month_str, day_str = match.group(1), match.group(2)
+        for yr in (current_date.year, current_date.year - 1, current_date.year + 1):
+            with contextlib.suppress(ValueError):
+                candidates.append(
+                    datetime.strptime(f"{month_str} {day_str} {yr}", "%b %d %Y").date()
+                )
+    # e.g., "Your Daily Digest for Thu, 5/1 is ready to view"
+    match_slash = re.search(
+        r"Your Daily Digest for [A-Za-z]+,?\s+(\d{1,2})/(\d{1,2})",
+        subject,
+        re.IGNORECASE,
+    )
+    if match_slash:
+        month_num, day_num = int(match_slash.group(1)), int(match_slash.group(2))
+        for yr in (current_date.year, current_date.year - 1, current_date.year + 1):
+            with contextlib.suppress(ValueError):
+                candidates.append(date(yr, month_num, day_num))
+    if candidates:
+        return min(candidates, key=lambda d: abs((d - current_date).days))
+    return None
+
+
+def is_email_from_prior_day(
+    subject: str | None,
+    date_header: str | None,
+    target_date: date,
+) -> bool:
+    """Check if a USPS Informed Delivery email is from a prior day."""
+    subject_date = extract_digest_target_date(subject, target_date)
+    if subject_date is not None:
+        return subject_date < target_date
+
+    if date_header:
+        try:
+            parsed_dt = email.utils.parsedate_to_datetime(date_header)
+            if parsed_dt is not None:
+                email_date = (
+                    parsed_dt.astimezone().date()
+                    if parsed_dt.tzinfo
+                    else parsed_dt.date()
+                )
+                return email_date < target_date
+        except (ValueError, TypeError):
+            pass
+
+    return False
+
+
+class USPSShipper(Shipper):
+    """USPS Informed Delivery shipper."""
+
+    @property
+    def name(self) -> str:
+        """Return shipper name."""
+        return "usps"
+
+    @classmethod
+    def handles_sensor(cls, sensor_type: str) -> bool:
+        """Return True if this shipper handles the given sensor type."""
+        return sensor_type == "usps_mail"
+
+    async def process(
+        self,
+        account: IMAP4_SSL,
+        date: str,
+        sensor_type: str,
+        cache: EmailCache | None = None,
+    ) -> dict[str, Any]:
+        """Process USPS Informed Delivery emails."""
+        config = self._get_usps_config()
+        image_count = 0
+        images = []
+        images_delete = []
+
+        (server_response, data) = await self._search_informed_delivery(account)
+
+        # Setup image directory and overlays
+        if not await self._setup_image_directory(config["image_output_path"]):
+            return {ATTR_COUNT: image_count}
+
+        # If search failed or no email found, ensure no-mail image is set
+        if server_response != "OK" or data[0] is None:
+            await self._copy_nomail_image(
+                config["image_output_path"],
+                config["image_name"],
+                config["custom_img"],
+            )
+            return {
+                ATTR_COUNT: image_count,
+                ATTR_SCANNED_IMAGES: 0,
+                ATTR_UNSCANNED_PIECES: 0,
+                ATTR_HAS_MAIL_IMAGES: False,
+                ATTR_USPS_IMAGE: config["image_name"],
+                ATTR_IMAGE_PATH: config["image_output_path"],
+                ATTR_GRID_IMAGE_NAME: config["image_name"].replace(".gif", "_grid.png"),
+            }
+
+        all_msg_content = ""
+        if server_response == "OK":
+            _LOGGER.debug("Informed Delivery email found processing...")
+            for num in data[0].split():
+                (image_count, images, email_content) = await self._process_usps_email(
+                    account,
+                    num,
+                    config["image_output_path"],
+                    image_count,
+                    images,
+                    cache,
+                )
+                all_msg_content += email_content
+
+        # Process images
+        images = await self._process_usps_images(all_msg_content, images)
+
+        placeholder_str = str(ASSET_ROOT / "image-no-mailpieces700.jpg")
+        scanned_count = len([img for img in images if img != placeholder_str])
+        has_mail_images = scanned_count > 0
+
+        # Count unscanned mailpieces from both new and legacy USPS Informed Delivery formats
+        unscanned_matches = all_msg_content.count("mailpiece-with-no-image-id")
+        if unscanned_matches == 0:
+            legacy_matches = len(
+                re.findall(r"\bimage-no-mailpieces?700\.jpg\b", all_msg_content)
+            )
+            unscanned_matches = legacy_matches
+
+        if placeholder_str in images:
+            unscanned_count = max(1, unscanned_matches)
+        else:
+            unscanned_count = unscanned_matches
+
+        total_count = scanned_count + unscanned_count
+
+        # Generate filtered list for GIF/MP4/Grid
+        gif_images = images.copy()
+        if not config.get("usps_placeholder", True):
+            if placeholder_str in gif_images:
+                gif_images.remove(placeholder_str)
+
+        # Generate camera media
+        await self._create_camera_media(gif_images, config, images_delete)
+
+        return {
+            ATTR_COUNT: total_count,
+            ATTR_SCANNED_IMAGES: scanned_count,
+            ATTR_UNSCANNED_PIECES: unscanned_count,
+            ATTR_HAS_MAIL_IMAGES: has_mail_images,
+            ATTR_USPS_IMAGE: config["image_name"],
+            ATTR_IMAGE_PATH: config["image_output_path"],
+            ATTR_GRID_IMAGE_NAME: config["image_name"].replace(".gif", "_grid.png"),
+        }
+
+    async def process_batch(
+        self,
+        account: IMAP4_SSL,
+        date: str,
+        sensors: list[str],
+        cache: EmailCache,
+        since_date: str | None = None,
+    ) -> dict[str, Any]:
+        """Process multiple USPS sensors in batch."""
+        res = {}
+        for sensor in sensors:
+            res.update(await self.process(account, date, sensor, cache))
+
+            # Replicatecoordinator dict structure
+            if sensor not in res:
+                if ATTR_COUNT in res:
+                    res[sensor] = res[ATTR_COUNT]
+                    # Don't pop ATTR_COUNT because other things might need it, actually
+                    # coordinator used to pop it via explicit assignment
+
+        return res
+
+    async def _create_camera_media(
+        self,
+        gif_images: list,
+        config: dict,
+        images_delete: list,
+    ):
+        """Create camera media (GIF, MP4, and Grid)."""
+        if len(gif_images) > 0:
+            await self._generate_mail_image(
+                gif_images,
+                config["image_output_path"],
+                config["image_name"],
+                config["gif_duration"],
+                images_delete,
+            )
+        else:
+            await self._copy_nomail_image(
+                config["image_output_path"],
+                config["image_name"],
+                config["custom_img"],
+            )
+
+        if config["gen_mp4"]:
+            await self._generate_mp4_video(
+                config["image_output_path"],
+                config["image_name"],
+            )
+        if config["gen_grid"]:
+            await self._generate_grid_image(
+                config["image_output_path"],
+                config["image_name"],
+                len(gif_images),
+            )
+
+    async def _generate_mp4_video(self, path: str, name: str):
+        """Generate MP4 video from images."""
+        await self.hass.async_add_executor_job(_generate_mp4, path, name)
+
+    async def _generate_grid_image(self, path: str, name: str, count: int):
+        """Generate grid image from images."""
+        await self.hass.async_add_executor_job(generate_grid_img, path, name, count)
+
+    async def _process_usps_images(self, content: str, images: list) -> list:
+        """Process USPS images (placeholder and filtering)."""
+        # Old USPS format: plain-text email body contained the filename as a reference.
+        # New format is handled in _extract_usps_images on properly decoded HTML.
+        if re.findall(r"\bimage-no-mailpieces?700\.jpg\b", content):
+            placeholder = ASSET_ROOT / "image-no-mailpieces700.jpg"
+            placeholder_str = str(placeholder)
+            if placeholder.exists() and placeholder_str not in images:
+                images.append(placeholder_str)
+                _LOGGER.debug(
+                    "Placeholder image found using: image-no-mailpieces700.jpg.",
+                )
+
+        # Announcement images removal
+        return self._remove_announcement_images(images)
+
+    def _remove_announcement_images(self, images: list) -> list:
+        """Remove announcement images."""
+        return [
+            el
+            for el in images
+            if not any(
+                ignore in el
+                for ignore in ["mailerProvidedImage", "ra_0", "Mail Attachment.txt"]
+            )
+        ]
+
+    async def _generate_mail_image(
+        self,
+        images: list,
+        path: str,
+        name: str,
+        duration: int,
+        delete_list: list,
+    ):
+        """Generate animated GIF from mail images."""
+        _LOGGER.debug("Resizing images to 724x320...")
+        all_images = await self.hass.async_add_executor_job(
+            resize_images,
+            images,
+            724,
+            320,
+        )
+        delete_list.extend(all_images)
+
+        try:
+            _LOGGER.debug("Generating animated GIF")
+            gif_path = str(Path(path) / name)
+            await self.hass.async_add_executor_job(
+                generate_delivery_gif,
+                all_images,
+                gif_path,
+                duration * 1000,
+            )
+            _LOGGER.debug("Mail image generated.")
+        except (OSError, ValueError) as err:
+            _LOGGER.error("Error attempting to generate image: %s", err)
+
+        for image in delete_list:
+            await self.hass.async_add_executor_job(
+                cleanup_images,
+                f"{Path(image).parent}/",
+                Path(image).name,
+            )
+
+    async def _copy_nomail_image(self, path: str, name: str, custom_img: str | None):
+        """Copy the 'no mail' placeholder image."""
+
+        def _prepare():
+            if not Path(path).exists():
+                Path(path).mkdir(parents=True, exist_ok=True)
+            target = Path(path) / name
+            if target.is_file():
+                cleanup_images(path, name)
+            src = custom_img or str(ASSET_ROOT / "mail_none.gif")
+            if not Path(src).is_absolute():
+                src = self.hass.config.path(src)
+            shutil.copyfile(src, str(target))
+
+        _LOGGER.debug("No mail found.")
+        try:
+            await self.hass.async_add_executor_job(_prepare)
+        except OSError as err:
+            _LOGGER.error("Error attempting to copy image: %s", err)
+
+    def _get_usps_config(self) -> dict:
+        """Get USPS specific configuration."""
+        image_path = self.config.get("image_path")
+        if not image_path:
+            image_path = default_image_path(self.hass, self.config)
+        return {
+            "image_output_path": image_path,
+            "gif_duration": self.config.get(CONF_DURATION),
+            "image_name": self.config.get("usps_image") or "usps_deliveries.gif",
+            "gen_mp4": self.config.get(CONF_GENERATE_MP4),
+            "custom_img": self.config.get(CONF_CUSTOM_IMG_FILE)
+            or DEFAULT_CUSTOM_IMG_FILE,
+            "gen_grid": self.config.get(CONF_GENERATE_GRID),
+            "usps_placeholder": self.config.get(CONF_USPS_PLACEHOLDER, True),
+        }
+
+    async def _search_informed_delivery(self, account: IMAP4_SSL) -> tuple:
+        """Search for USPS Informed Delivery emails."""
+        _LOGGER.debug("Attempting to find Informed Delivery mail")
+        _LOGGER.debug("Informed delivery search date: %s", get_formatted_date())
+
+        forwarding_header = self.config.get(CONF_FORWARDING_HEADER, "")
+        if forwarding_header and forwarding_header != "(none)":
+            email_addresses = SENSOR_DATA[ATTR_USPS_MAIL][ATTR_EMAIL]
+        else:
+            forwarding_header = ""
+            forwarded_emails = self.config.get("forwarded_emails", [])
+            if isinstance(forwarded_emails, str):
+                forwarded_emails = [
+                    e.strip() for e in forwarded_emails.split(",") if e.strip()
+                ]
+            if forwarded_emails:
+                email_addresses = (
+                    forwarded_emails + SENSOR_DATA[ATTR_USPS_MAIL][ATTR_EMAIL]
+                )
+            else:
+                email_addresses = SENSOR_DATA[ATTR_USPS_MAIL][ATTR_EMAIL]
+
+        return await email_search(
+            account=account,
+            address=email_addresses,
+            date=get_formatted_date(),
+            subject=SENSOR_DATA[ATTR_USPS_MAIL][ATTR_SUBJECT][0],
+            header=forwarding_header,
+        )
+
+    async def _setup_image_directory(self, path: str) -> bool:
+        """Ensure image directory exists and is prepared."""
+        if not await anyio.Path(path).is_dir():
+            try:
+                await anyio.Path(path).mkdir(parents=True, exist_ok=True)
+            except OSError as err:
+                _LOGGER.error("Error creating directory: %s", err)
+                return False
+
+        # Clean up and setup overlays
+        await self.hass.async_add_executor_job(cleanup_images, path)
+        await self.hass.async_add_executor_job(copy_overlays, path)
+        return True
+
+    async def _process_usps_email(
+        self,
+        account: IMAP4_SSL,
+        num: str,
+        image_output_path: str,
+        image_count: int,
+        images: list,
+        cache: EmailCache | None = None,
+        target_date: date | None = None,
+    ) -> tuple[int, list, str]:
+        """Process a single USPS Informed Delivery email."""
+        if cache:
+            msg_parts = (await cache.fetch(num, "(RFC822)"))[1]
+        else:
+            msg_parts = (await email_fetch(account, num, "(RFC822)"))[1]
+        _LOGGER.debug("Processing email number: %s", num)
+        all_content = ""
+        check_date = target_date or get_today()
+        for response_part in msg_parts:
+            if isinstance(response_part, (bytes, bytearray)):
+                msg = email.message_from_bytes(response_part)
+                subject = msg.get("Subject")
+                if subject:
+                    # Decode all encoded words before applying digest-date precedence.
+                    # Keep the raw subject/date fallback if a header is malformed.
+                    with contextlib.suppress(
+                        LookupError, UnicodeError, HeaderParseError
+                    ):
+                        subject = str(make_header(decode_header(subject)))
+                date_header = msg.get("Date")
+
+                if is_email_from_prior_day(subject, date_header, check_date):
+                    _LOGGER.debug(
+                        "Skipping USPS email %s: digest is dated prior to %s (Subject: %s, Date: %s)",
+                        num,
+                        check_date,
+                        subject,
+                        date_header,
+                    )
+                    continue
+
+                all_content += str(response_part, "utf-8", errors="ignore")
+                for part in msg.walk():
+                    if part.get_content_type() == "text/html":
+                        (image_count, images) = await self._extract_usps_images(
+                            part,
+                            image_output_path,
+                            image_count,
+                            images,
+                        )
+                    elif part.get_content_type() == "image/jpeg":
+                        (image_count, images) = await self._extract_jpeg_attachment(
+                            part,
+                            image_output_path,
+                            image_count,
+                            images,
+                        )
+        return image_count, images, all_content
+
+    async def _extract_usps_images(
+        self,
+        part: email.message.Message,
+        image_output_path: str,
+        image_count: int,
+        images: list,
+    ) -> tuple[int, list]:
+        """Extract images from an email part (HTML/Base64)."""
+        return await extract_usps_images(
+            self.hass, part, image_output_path, image_count, images
+        )
+
+    async def _extract_jpeg_attachment(
+        self,
+        part: email.message.Message,
+        image_output_path: str,
+        image_count: int,
+        images: list,
+    ) -> tuple[int, list]:
+        """Extract image from JPEG attachment."""
+        return await extract_jpeg_attachment(
+            self.hass, part, image_output_path, image_count, images
+        )

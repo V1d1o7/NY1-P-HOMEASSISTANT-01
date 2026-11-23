@@ -6,6 +6,9 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
 
+packages:
+  diagnostics: !include Base_Confs/diagnostics.yaml
+
 esp32:
   board: esp32dev
   framework:
@@ -29,7 +32,7 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "${name} Fallback Hotspot"
+    ssid: "${friendly_name} Fallback Hotspot"
     password: !secret fallback_password
 
 captive_portal:

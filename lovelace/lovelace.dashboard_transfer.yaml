@@ -297,5 +297,7 @@ config:
           type: custom:button-card
         type: horizontal-stack
       type: vertical-stack
+    - image_entity: image.roborock_q5_max
+      type: picture
     theme: kibibit-dark-cards
     title: Home

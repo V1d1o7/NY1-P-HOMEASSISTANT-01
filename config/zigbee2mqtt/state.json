@@ -1,11 +1,151 @@
 {
-    "0x00158d000adbff6a": {
-        "temperature": 24.34,
-        "humidity": 38.69,
+    "0x00158d000ad8aaaa": {
+        "voltage": 3035,
+        "battery": 100,
+        "device_temperature": 30,
+        "power_outage_count": 845,
+        "linkquality": 176
+    },
+    "0x00158d0009760924": {
+        "voltage": 3025,
+        "battery": 100,
+        "device_temperature": 26,
+        "power_outage_count": 1087,
+        "trigger_count": 0,
+        "contact": true,
+        "linkquality": 172
+    },
+    "0x00158d000af381bf": {
+        "voltage": 3025,
+        "battery": 100,
+        "device_temperature": 26,
+        "power_outage_count": 27,
+        "trigger_count": 0,
+        "contact": false,
+        "linkquality": 156
+    },
+    "0x282c02bfffe6f86a": {
+        "state": "ON",
+        "voltage": 118.3,
+        "ac_frequency": 60,
+        "power": 0,
+        "current": 0,
+        "power_factor": 0,
+        "energy": 17.75,
+        "linkquality": 156,
+        "update": {
+            "state": "idle",
+            "installed_version": 268513381,
+            "latest_version": 268513381,
+            "latest_source": "https://raw.githubusercontent.com/Koenkk/zigbee-OTA/master/images/ThirdReality/SmartPlug_Zigbee_PROD_OTA_V101_1.01.01.ota",
+            "latest_release_notes": null
+        }
+    },
+    "0x00158d000ad8bc55": {
+        "voltage": 3015,
+        "battery": 100,
+        "device_temperature": 23,
+        "power_outage_count": 590,
+        "trigger_count": 0,
+        "contact": false,
+        "linkquality": 148
+    },
+    "0x00158d0007efa501": {
+        "temperature": 26.46,
+        "humidity": 50.93,
+        "pressure": 1006.6,
+        "linkquality": 148,
+        "voltage": 2785,
+        "battery": 0,
+        "power_outage_count": 2050
+    },
+    "0x00158d000ad9f48e": {
+        "temperature": 23.8,
+        "humidity": 58.42,
         "pressure": 1006.5,
+        "linkquality": 180,
+        "voltage": 2965,
+        "battery": 77,
+        "power_outage_count": 62
+    },
+    "0x282c02bfffec65e7": {
+        "voltage": 118.3,
+        "ac_frequency": 60,
+        "energy": 0.94,
+        "state": "OFF",
+        "power_factor": 0,
+        "current": 0,
+        "power": 0,
+        "linkquality": 252,
+        "update": {
+            "state": "idle",
+            "installed_version": 268513381,
+            "latest_version": 268513381,
+            "latest_source": "https://raw.githubusercontent.com/Koenkk/zigbee-OTA/master/images/ThirdReality/SmartPlug_Zigbee_PROD_OTA_V101_1.01.01.ota",
+            "latest_release_notes": null
+        }
+    },
+    "0xb4e3f9fffe7569c4": {
+        "battery": 75,
         "linkquality": 204,
-        "voltage": 2905,
-        "battery": 37,
-        "power_outage_count": 113
+        "update": {
+            "state": "idle",
+            "installed_version": 604241926,
+            "latest_version": 604241926,
+            "latest_source": "https://raw.githubusercontent.com/Koenkk/zigbee-OTA/master/images/IKEA/tradfri-shortcut-button_release_prod_v604241926_56f5d8d1-78b1-4088-afc1-05d3b7e3314b.ota",
+            "latest_release_notes": "Enables double-clicks.\r\nhttps://www.zigbee2mqtt.io/devices/E1812.html\r\nhttps://ww8.ikea.com/ikeahomesmart/releasenotes/releasenotes.html"
+        }
+    },
+    "0x00158d000adc32a4": {
+        "temperature": 23.58,
+        "humidity": 55.12,
+        "pressure": 1006.3,
+        "voltage": 2885,
+        "battery": 23,
+        "power_outage_count": 9,
+        "linkquality": 196
+    },
+    "0x00158d0009ef836c": {
+        "temperature": 25.28,
+        "humidity": 58.52,
+        "pressure": 1006.4,
+        "voltage": 2985,
+        "battery": 90,
+        "power_outage_count": 365,
+        "linkquality": 212
+    },
+    "0x00158d000af0c3ba": {
+        "voltage": 2995,
+        "battery": 97,
+        "device_temperature": 27,
+        "power_outage_count": 11,
+        "trigger_count": 0,
+        "contact": true,
+        "linkquality": 188
+    },
+    "0x00158d000adbff6a": {
+        "voltage": 3005,
+        "battery": 100,
+        "power_outage_count": 1309,
+        "temperature": 41.31,
+        "humidity": 32.59,
+        "pressure": 1006,
+        "linkquality": 156
+    },
+    "0x00158d000ad7ebf3": {
+        "contact": false,
+        "linkquality": 152,
+        "voltage": 2935,
+        "battery": 57,
+        "device_temperature": 28,
+        "power_outage_count": 1592,
+        "trigger_count": 0
+    },
+    "0x00158d000926fd82": {
+        "voltage": 3065,
+        "battery": 100,
+        "device_temperature": 29,
+        "power_outage_count": 141,
+        "linkquality": 252
     }
 }

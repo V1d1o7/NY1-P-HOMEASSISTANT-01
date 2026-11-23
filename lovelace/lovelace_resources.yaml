@@ -1,55 +1,58 @@
 items:
 - id: 49fe66366ad545939d67ac40155e01bb
   type: module
-  url: /hacsfiles/lovelace-card-mod/card-mod.js?hacstag=190927524343
+  url: /local/community/lovelace-card-mod/card-mod.js?v=190927524421
 - id: d0b4ebeaa4954c32ac5b07acbca4db3f
   type: module
-  url: /hacsfiles/config-template-card/config-template-card.js?hacstag=172177543136
+  url: /local/community/config-template-card/config-template-card.js?v=172177543-2.3.0
 - id: 72fe70f25b624601908fd60b35b117d8
   type: module
-  url: /hacsfiles/kiosk-mode/kiosk-mode.js?hacstag=497319128640
+  url: /local/community/kiosk-mode/kiosk-mode.js?v=4973191281600
 - id: 984db1ced0164f7b89d25f31b17ba6d2
   type: module
-  url: /hacsfiles/mini-media-player/mini-media-player-bundle.js?hacstag=1485208381169
+  url: /local/community/mini-media-player/mini-media-player-bundle.js?v=14852083811612
 - id: c61b950256f04909970d9090b673c694
   type: module
-  url: /hacsfiles/lovelace-mushroom/mushroom.js?hacstag=444350375421
+  url: /local/community/lovelace-mushroom/mushroom.js?v=444350375530
 - id: d7d101e3a49749da8181a4eed44f0b75
   type: module
-  url: /hacsfiles/battery-state-card/battery-state-card.js?hacstag=256292682321
+  url: /local/community/battery-state-card/battery-state-card.js?v=256292682-v4.3.0
 - id: 12210418e750489d92cfeafd99f07fcd
   type: module
-  url: /hacsfiles/lovelace-multiple-entity-row/multiple-entity-row.js?hacstag=178921037451
+  url: /local/community/lovelace-multiple-entity-row/multiple-entity-row.js?v=1789210374131
 - id: bda3706c4ca94e57931939ba3320c1fd
   type: module
-  url: /hacsfiles/weather-card/weather-card.js?hacstag=192732636150
+  url: /local/community/weather-card/weather-card.js?v=192732636150
 - id: 064b4845208847f2908fac57568f0364
   type: module
-  url: /hacsfiles/atomic-calendar-revive/atomic-calendar-revive.js?hacstag=2465497471000
+  url: /local/community/atomic-calendar-revive/atomic-calendar-revive.js?v=2465497471031
 - id: 681ff2be737e4f65978993fb9c081953
   type: module
-  url: /hacsfiles/mini-climate-card/mini-climate-card-bundle.js?hacstag=268163975272
+  url: /local/community/mini-climate-card/mini-climate-card-bundle.js?v=268163975340
 - id: f3cb9cac175c4a00a2a06c201e537fc2
   type: module
-  url: /hacsfiles/Home-Assistant-Mail-And-Packages-Custom-Card/Home-Assistant-Mail-And-Packages-Custom-Card.js?hacstag=240145420006
+  url: /local/community/Home-Assistant-Mail-And-Packages-Custom-Card/Home-Assistant-Mail-And-Packages-Custom-Card.js?v=240145420006
 - id: 90c753941b814b58b4673f24d85c6664
   type: module
-  url: /hacsfiles/button-card/button-card.js?hacstag=146194325412
+  url: /local/community/button-card/button-card.js?v=146194325701
 - id: 092e1d8fc9894a1ba920c660a0a3180b
   type: module
-  url: /hacsfiles/simple-thermostat/simple-thermostat.js?hacstag=158654878250
+  url: /local/community/simple-thermostat/simple-thermostat.js?v=158654878250
 - id: a70b98600e5e4a0fa8955451f10a8da8
   type: module
-  url: /hacsfiles/lovelace-header-cards/lovelace-header-cards.js?hacstag=4661961920010
+  url: /local/community/lovelace-header-cards/lovelace-header-cards.js?v=4661961920010
 - id: 45a37c2284764ea3ab8c163f9043881d
   type: module
-  url: /hacsfiles/Bubble-Card/bubble-card.js?hacstag=680112919230
+  url: /local/community/Bubble-Card/bubble-card.js?v=680112919343
 - id: 5378a26ec316404c9ae7af759988d096
   type: module
-  url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js?hacstag=1512800620121
+  url: /local/community/mini-graph-card/mini-graph-card-bundle.js?v=1512800620130
 - id: c179e748038e4bcb99ba04f994d5469c
   type: module
-  url: /hacsfiles/power-todoist-card/powertodoist-card.js?hacstag=637041617011
+  url: /local/community/power-todoist-card/powertodoist-card.js?v=637041617114
 - id: 68ae2c4c542142c1af03e690304331e3
   type: module
-  url: /hacsfiles/swipe-card/swipe-card.js?hacstag=192732887500
+  url: /local/community/swipe-card/swipe-card.js?v=192732887500
+- id: d0b7595bb6a84a0a81112f29562a5506
+  type: module
+  url: /local/community/lovelace-layout-card/layout-card.js?v=156434866247

@@ -1,317 +1,196 @@
 """Adds config flow for Mail and Packages."""
 
+from __future__ import annotations
+
 import logging
-from os import path
+from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
     CONF_PORT,
-    CONF_RESOURCES,
     CONF_USERNAME,
 )
+from homeassistant.core import callback
+from homeassistant.helpers import config_entry_oauth2_flow
 
-from .const import (
-    CONF_ALLOW_EXTERNAL,
-    CONF_AMAZON_DAYS,
-    CONF_AMAZON_DOMAIN,
-    CONF_AMAZON_FWDS,
-    CONF_CUSTOM_IMG,
-    CONF_CUSTOM_IMG_FILE,
-    CONF_STORAGE,
-    CONF_DURATION,
-    CONF_FOLDER,
-    CONF_GENERATE_MP4,
-    CONF_IMAGE_SECURITY,
+from custom_components.mail_and_packages.application_credentials import (
+    implementation_for_auth_type,
+)
+from custom_components.mail_and_packages.config_flows.options import (
+    OptionsFlowStepsMixin,
+)
+from custom_components.mail_and_packages.config_flows.reconfig import (
+    ReconfigureFlowMixin,
+)
+from custom_components.mail_and_packages.config_flows.schemas import (
+    IMAP_SECURITY,
+    _build_step_2_schema,
+    _get_schema_auth,
+    _get_schema_imap,
+    _get_schema_step_2,
+    _get_schema_step_3,
+    _get_schema_step_amazon,
+    _get_schema_step_forwarded_emails,
+    _get_schema_step_storage,
+    multi_folder_select,
+)
+from custom_components.mail_and_packages.config_flows.steps import (
+    AMAZON_SENSORS,
+    ConfigFlowStepsMixin,
+)
+from custom_components.mail_and_packages.config_flows.validation import (
+    AMAZON_EMAIL_ERROR,
+    ERROR_MAILBOX_FAIL,
+    FORWARDED_EMAIL_ERROR,
+    _check_amazon_forwards,
+    _check_forwarded_emails,
+    _get_mailboxes,
+    _parse_folder_list,
+    _validate_amazon_fwds,
+    _validate_forwarded_emails,
+    _validate_login,
+    _validate_oauth_login,
+    _validate_path_input,
+    _validate_user_input,
+)
+from custom_components.mail_and_packages.const import (
+    AUTH_TYPE_OAUTH_GOOGLE,
+    AUTH_TYPE_OAUTH_MICROSOFT,
+    AUTH_TYPE_PASSWORD,
+    CONF_AUTH_TYPE,
+    CONF_ENTRY_TYPE,
     CONF_IMAP_SECURITY,
-    CONF_IMAP_TIMEOUT,
-    CONF_PATH,
-    CONF_SCAN_INTERVAL,
     CONF_VERIFY_SSL,
     CONFIG_VER,
-    DEFAULT_ALLOW_EXTERNAL,
-    DEFAULT_AMAZON_DAYS,
-    DEFAULT_AMAZON_DOMAIN,
-    DEFAULT_AMAZON_FWDS,
-    DEFAULT_CUSTOM_IMG,
-    DEFAULT_CUSTOM_IMG_FILE,
     DEFAULT_FOLDER,
-    DEFAULT_GIF_DURATION,
-    DEFAULT_IMAGE_SECURITY,
-    DEFAULT_IMAP_TIMEOUT,
-    DEFAULT_PATH,
     DEFAULT_PORT,
-    DEFAULT_SCAN_INTERVAL,
-    DEFAULT_STORAGE,
     DOMAIN,
+    ENTRY_TYPE_SUMMARY,
+    OAUTH_IMAP_DEFAULTS,
+    OAUTH_SCOPES,
+    SUMMARY_DEVICE_NAME,
+    SUMMARY_UNIQUE_ID,
 )
-from .helpers import _check_ffmpeg, _test_login, get_resources, login
+from custom_components.mail_and_packages.summary import (
+    is_summary_entry,
+    mailbox_entries,
+)
+from custom_components.mail_and_packages.utils.email import validate_email_address
+from custom_components.mail_and_packages.utils.image import _check_ffmpeg
+from custom_components.mail_and_packages.utils.imap import login, logout
 
-ERROR_MAILBOX_FAIL = "Problem getting mailbox listing using 'INBOX' message"
-IMAP_SECURITY = ["none", "startTLS", "SSL"]
-AMAZON_SENSORS = ["amazon_packages", "amazon_delivered", "amazon_exception"]
 _LOGGER = logging.getLogger(__name__)
-AMAZON_EMAIL_ERROR = (
-    "Amazon domain found in email: %s, this may cause errors when searching emails."
-)
 
-
-async def _check_amazon_forwards(forwards: str, domain: str) -> tuple:
-    """Validate and format amazon forward emails for user input.
-
-    Returns tuple: dict of errors, list of email addresses
-    """
-    emails = forwards.split(",")
-    errors = []
-
-    # Validate each email address
-    for email in emails:
-        email = email.strip()
-
-        if "@" in email:
-            # Check for amazon domains
-            if f"@{domain}" in email:
-                _LOGGER.error(
-                    AMAZON_EMAIL_ERROR,
-                    email,
-                )
-
-        # No forwards
-        elif forwards in ["", "(none)", '""']:
-            forwards = []
-
-        else:
-            _LOGGER.error("Missing '@' in email address: %s", email)
-            errors.append("invalid_email_format")
-
-    if len(errors) == 0:
-        errors.append("ok")
-
-    return errors, forwards
-
-
-async def _validate_user_input(user_input: dict) -> tuple:
-    """Valididate user input from config flow.
-
-    Returns tuple with error messages and modified user_input
-    """
-    errors = {}
-
-    # Validate amazon forwarding email addresses
-    if CONF_AMAZON_FWDS in user_input:
-        if isinstance(user_input[CONF_AMAZON_FWDS], str):
-            status, amazon_list = await _check_amazon_forwards(
-                user_input[CONF_AMAZON_FWDS], user_input[CONF_AMAZON_DOMAIN]
-            )
-            if status[0] == "ok":
-                user_input[CONF_AMAZON_FWDS] = amazon_list
-            else:
-                user_input[CONF_AMAZON_FWDS] = amazon_list
-                errors[CONF_AMAZON_FWDS] = status[0]
-
-    # Check for ffmpeg if option enabled
-    if user_input[CONF_GENERATE_MP4]:
-        valid = await _check_ffmpeg()
-    else:
-        valid = True
-
-    if not valid:
-        errors[CONF_GENERATE_MP4] = "ffmpeg_not_found"
-
-    # validate custom file exists
-    if user_input[CONF_CUSTOM_IMG] and CONF_CUSTOM_IMG_FILE in user_input:
-        valid = path.isfile(user_input[CONF_CUSTOM_IMG_FILE])
-    else:
-        valid = True
-
-    if not valid:
-        errors[CONF_CUSTOM_IMG_FILE] = "file_not_found"
-
-    # validate path exists
-    if CONF_STORAGE in user_input:
-        valid = path.exists(user_input[CONF_STORAGE])
-    else:
-        valid = True
-    if not valid:
-        errors[CONF_STORAGE] = "path_not_found"
-
-    return errors, user_input
-
-
-def _get_mailboxes(
-    host: str, port: int, user: str, pwd: str, security: str, verify: bool
-) -> list:
-    """Get list of mailbox folders from mail server."""
-    account = login(host, port, user, pwd, security, verify)
-
-    status, folderlist = account.list()
-    mailboxes = []
-    if status != "OK":
-        _LOGGER.error("Error listing mailboxes ... using default")
-        mailboxes.append(DEFAULT_FOLDER)
-    else:
-        try:
-            for i in folderlist:
-                mailboxes.append(i.decode().split(' "/" ')[1])
-        except IndexError:
-            _LOGGER.error("Error creating folder array trying period")
-            try:
-                for i in folderlist:
-                    mailboxes.append(i.decode().split(' "." ')[1])
-            except IndexError:
-                _LOGGER.error("Error creating folder array, using INBOX")
-                mailboxes.append(DEFAULT_FOLDER)
-            except Exception as err:
-                _LOGGER.error("%s: %s", ERROR_MAILBOX_FAIL, err)
-                mailboxes.append(DEFAULT_FOLDER)
-
-    return mailboxes
-
-
-def _get_schema_step_1(user_input: list, default_dict: list) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema(
-        {
-            vol.Required(CONF_HOST, default=_get_default(CONF_HOST)): cv.string,
-            vol.Required(CONF_PORT, default=_get_default(CONF_PORT, 993)): cv.port,
-            vol.Required(CONF_USERNAME, default=_get_default(CONF_USERNAME)): cv.string,
-            vol.Required(CONF_PASSWORD, default=_get_default(CONF_PASSWORD)): cv.string,
-            vol.Required(
-                CONF_IMAP_SECURITY, default=_get_default(CONF_IMAP_SECURITY)
-            ): vol.In(IMAP_SECURITY),
-            vol.Required(
-                CONF_VERIFY_SSL, default=_get_default(CONF_VERIFY_SSL)
-            ): cv.boolean,
-        }
-    )
-
-
-def _get_schema_step_2(data: list, user_input: list, default_dict: list) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema(
-        {
-            vol.Required(CONF_FOLDER, default=_get_default(CONF_FOLDER)): vol.In(
-                _get_mailboxes(
-                    data[CONF_HOST],
-                    data[CONF_PORT],
-                    data[CONF_USERNAME],
-                    data[CONF_PASSWORD],
-                    data[CONF_IMAP_SECURITY],
-                    data[CONF_VERIFY_SSL],
-                )
-            ),
-            vol.Required(
-                CONF_RESOURCES, default=_get_default(CONF_RESOURCES)
-            ): cv.multi_select(get_resources()),
-            vol.Optional(
-                CONF_SCAN_INTERVAL, default=_get_default(CONF_SCAN_INTERVAL)
-            ): vol.All(vol.Coerce(int), vol.Range(min=5)),
-            vol.Optional(
-                CONF_IMAP_TIMEOUT, default=_get_default(CONF_IMAP_TIMEOUT)
-            ): vol.All(vol.Coerce(int), vol.Range(min=10)),
-            vol.Optional(
-                CONF_DURATION, default=_get_default(CONF_DURATION)
-            ): vol.Coerce(int),
-            vol.Optional(
-                CONF_GENERATE_MP4, default=_get_default(CONF_GENERATE_MP4)
-            ): cv.boolean,
-            vol.Optional(
-                CONF_ALLOW_EXTERNAL, default=_get_default(CONF_ALLOW_EXTERNAL)
-            ): cv.boolean,
-            vol.Optional(
-                CONF_CUSTOM_IMG, default=_get_default(CONF_CUSTOM_IMG)
-            ): cv.boolean,
-        }
-    )
-
-
-def _get_schema_step_3(user_input: list, default_dict: list) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema(
-        {
-            vol.Optional(
-                CONF_CUSTOM_IMG_FILE,
-                default=_get_default(CONF_CUSTOM_IMG_FILE, DEFAULT_CUSTOM_IMG_FILE),
-            ): cv.string,
-        }
-    )
-
-
-def _get_schema_step_amazon(user_input: list, default_dict: list) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_AMAZON_DOMAIN, default=_get_default(CONF_AMAZON_DOMAIN)
-            ): cv.string,
-            vol.Optional(
-                CONF_AMAZON_FWDS, default=_get_default(CONF_AMAZON_FWDS)
-            ): cv.string,
-            vol.Optional(CONF_AMAZON_DAYS, default=_get_default(CONF_AMAZON_DAYS)): int,
-        }
-    )
-
-
-def _get_schema_step_storage(user_input: list, default_dict: list) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema(
-        {
-            vol.Required(CONF_STORAGE, default=_get_default(CONF_STORAGE)): cv.string,
-        }
-    )
+# Re-exports for test compatibility and patch targets
+__all__ = [
+    "AMAZON_EMAIL_ERROR",
+    "AMAZON_SENSORS",
+    "DEFAULT_FOLDER",
+    "ERROR_MAILBOX_FAIL",
+    "FORWARDED_EMAIL_ERROR",
+    "IMAP_SECURITY",
+    "ConfigFlowStepsMixin",
+    "MailAndPackagesFlowHandler",
+    "MailAndPackagesOptionsFlow",
+    "OptionsFlowStepsMixin",
+    "Path",
+    "ReconfigureFlowMixin",
+    "_build_step_2_schema",
+    "_check_amazon_forwards",
+    "_check_ffmpeg",
+    "_check_forwarded_emails",
+    "_get_mailboxes",
+    "_get_schema_auth",
+    "_get_schema_imap",
+    "_get_schema_step_2",
+    "_get_schema_step_3",
+    "_get_schema_step_amazon",
+    "_get_schema_step_forwarded_emails",
+    "_get_schema_step_storage",
+    "_parse_folder_list",
+    "_validate_amazon_fwds",
+    "_validate_forwarded_emails",
+    "_validate_login",
+    "_validate_oauth_login",
+    "_validate_path_input",
+    "_validate_user_input",
+    "login",
+    "logout",
+    "multi_folder_select",
+    "validate_email_address",
+]
 
 
 @config_entries.HANDLERS.register(DOMAIN)
-class MailAndPackagesFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class MailAndPackagesFlowHandler(
+    ReconfigureFlowMixin,
+    ConfigFlowStepsMixin,
+    config_entry_oauth2_flow.AbstractOAuth2FlowHandler,
+    domain=DOMAIN,
+):
     """Config flow for Mail and Packages."""
 
     VERSION = CONFIG_VER
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+    DOMAIN = DOMAIN
 
-    def __init__(self):
+    @classmethod
+    @callback
+    def async_supports_options_flow(
+        cls, config_entry: config_entries.ConfigEntry
+    ) -> bool:
+        """Return whether the entry has options; the summary has none."""
+        return not is_summary_entry(config_entry)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Get the options flow for this handler."""
+        return MailAndPackagesOptionsFlow(config_entry)
+
+    @property
+    def logger(self) -> logging.Logger:
+        """Return logger."""
+        return _LOGGER
+
+    @property
+    def extra_authorize_data(self) -> dict:
+        """Extra data that needs to be appended to the authorize url."""
+        auth_type = self._data.get(CONF_AUTH_TYPE, AUTH_TYPE_PASSWORD)
+        scopes = OAUTH_SCOPES.get(auth_type, "")
+        data = {"scope": scopes}
+        # Pre-select the mailbox the user typed so they cannot accidentally
+        # authorize a different signed-in account.
+        if username := self._data.get(CONF_USERNAME):
+            data["login_hint"] = username
+        if auth_type == AUTH_TYPE_OAUTH_GOOGLE:
+            data.update(
+                {
+                    "access_type": "offline",
+                    "prompt": "consent",
+                }
+            )
+        elif auth_type == AUTH_TYPE_OAUTH_MICROSOFT:
+            data.update(
+                {
+                    "prompt": "select_account",
+                }
+            )
+        return data
+
+    def __init__(self) -> None:
         """Initialize."""
-        self._entry = {}
-        self._data = {}
-        self._errors = {}
+        super().__init__()
+        self._entry: config_entries.ConfigEntry | None = None
+        self._data: dict[str, Any] = {}
+        self._errors: dict[str, Any] = {}
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
@@ -319,299 +198,184 @@ class MailAndPackagesFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data.update(user_input)
-            valid = await _test_login(
-                user_input[CONF_HOST],
-                user_input[CONF_PORT],
-                user_input[CONF_USERNAME],
-                user_input[CONF_PASSWORD],
-                user_input[CONF_IMAP_SECURITY],
-                user_input[CONF_VERIFY_SSL],
+            return await self.async_step_imap_config()
+
+        return await self._show_auth_form(user_input)
+
+    async def async_step_integration_discovery(
+        self, discovery_info: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Offer the combined summary once two or more mailboxes exist."""
+        await self.async_set_unique_id(SUMMARY_UNIQUE_ID)
+        self._abort_if_unique_id_configured()
+        if len(mailbox_entries(self.hass)) < 2:
+            return self.async_abort(reason="summary_needs_mailboxes")
+        self.context["title_placeholders"] = {"name": SUMMARY_DEVICE_NAME}
+        return await self.async_step_summary_confirm()
+
+    async def async_step_summary_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm adding the combined summary."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Mail and Packages ({SUMMARY_DEVICE_NAME})",
+                data={CONF_ENTRY_TYPE: ENTRY_TYPE_SUMMARY},
             )
-            if not valid:
-                self._errors["base"] = "communication"
-            else:
+        self._set_confirm_only()
+        return self.async_show_form(
+            step_id="summary_confirm",
+            description_placeholders={"count": str(len(mailbox_entries(self.hass)))},
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        """Reconfigure a mailbox; the summary has nothing to reconfigure."""
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        if entry is not None and is_summary_entry(entry):
+            return self.async_abort(reason="summary_not_configurable")
+        return await super().async_step_reconfigure(user_input)
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Handle re-authentication."""
+        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        self._data.update(entry_data)
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm re-authentication."""
+        self._errors = {}
+        auth_type = self._data.get(CONF_AUTH_TYPE, AUTH_TYPE_PASSWORD)
+
+        if user_input is not None:
+            self._data.update(user_input)
+            if auth_type != AUTH_TYPE_PASSWORD:
+                return await self.async_step_pick_implementation()
+
+            self._errors = await _validate_login(self.hass, self._data)
+            if not self._errors:
+                return self.async_update_reload_and_abort(
+                    self._entry,
+                    data=self._data,
+                )
+
+        if auth_type != AUTH_TYPE_PASSWORD:
+            return self.async_show_form(step_id="reauth_confirm")
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_USERNAME, default=self._data.get(CONF_USERNAME)): str,
+                vol.Required(CONF_PASSWORD): str,
+            }
+        )
+        return self.async_show_form(
+            step_id="reauth_confirm", data_schema=schema, errors=self._errors
+        )
+
+    async def async_step_imap_config(self, user_input=None):
+        """Handle IMAP config step after auth selection."""
+        self._errors = {}
+
+        if user_input is not None:
+            self._data.update(user_input)
+            auth_type = self._data.get(CONF_AUTH_TYPE, AUTH_TYPE_PASSWORD)
+
+            if auth_type != AUTH_TYPE_PASSWORD:
+                self._data[CONF_VERIFY_SSL] = True
+                return await self.async_step_pick_implementation()
+
+            self._errors = await _validate_login(
+                self.hass,
+                self._data,
+            )
+            if self._errors == {}:
                 return await self.async_step_config_2()
 
-            return await self._show_config_form(user_input)
+            return await self._show_imap_form(user_input)
 
-        return await self._show_config_form(user_input)
+        return await self._show_imap_form(user_input)
 
-    async def _show_config_form(self, user_input):
-        """Show the configuration form to edit configuration data."""
-        # Defaults
-        defaults = {
-            CONF_PORT: DEFAULT_PORT,
-            CONF_IMAP_SECURITY: "SSL",
-            CONF_VERIFY_SSL: True,
-        }
+    async def async_step_auth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Sign in through the server for this mailbox's own auth type.
 
+        Setup, reauth and reconfigure all pass through here after a
+        credential is picked, so the authorize and token requests always
+        match the provider chosen for this mailbox.
+        """
+        self.flow_impl = implementation_for_auth_type(
+            self.flow_impl, self._data[CONF_AUTH_TYPE]
+        )
+        return await super().async_step_auth(user_input)
+
+    async def async_oauth_create_entry(
+        self,
+        data: dict,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle OAuth2 completion — store token and continue to step 2."""
+        self._data.update(data)
+        if self._entry:
+            self.hass.config_entries.async_update_entry(
+                self._entry,
+                data=self._data,
+            )
+            await self.hass.config_entries.async_reload(self._entry.entry_id)
+            if self.context.get("source") == config_entries.SOURCE_REAUTH:
+                return self.async_abort(reason="reauth_successful")
+            _LOGGER.debug("%s reconfigured.", DOMAIN)
+            return self.async_abort(reason="reconfigure_successful")
+        # Make sure the mail server accepts the new sign-in before continuing,
+        # so problems surface now instead of as a mailbox that never updates.
+        if reason := await _validate_oauth_login(self.hass, self._data):
+            return self.async_abort(
+                reason=reason,
+                description_placeholders={
+                    "host": self._data.get(CONF_HOST, ""),
+                    "username": self._data.get(CONF_USERNAME, ""),
+                },
+            )
+        return await self.async_step_config_2()
+
+    async def _show_auth_form(self, user_input):
+        """Show the authentication form."""
+        defaults = {CONF_AUTH_TYPE: AUTH_TYPE_PASSWORD}
         return self.async_show_form(
             step_id="user",
-            data_schema=_get_schema_step_1(user_input, defaults),
+            data_schema=_get_schema_auth(user_input, defaults),
             errors=self._errors,
         )
 
-    async def async_step_config_2(self, user_input=None):
-        """Configure form step 2."""
-        self._errors = {}
-        if user_input is not None:
-            self._errors, user_input = await _validate_user_input(user_input)
-            self._data.update(user_input)
-            _LOGGER.debug("RESOURCES: %s", self._data[CONF_RESOURCES])
-            if len(self._errors) == 0:
-                if any(
-                    sensor in self._data[CONF_RESOURCES] for sensor in AMAZON_SENSORS
-                ):
-                    return await self.async_step_config_amazon()
-                if self._data[CONF_CUSTOM_IMG]:
-                    return await self.async_step_config_3()
-                return self.async_create_entry(
-                    title=self._data[CONF_HOST], data=self._data
-                )
-            return await self._show_config_2(user_input)
-
-        return await self._show_config_2(user_input)
-
-    async def _show_config_2(self, user_input):
-        """Step 2 setup."""
-        # Defaults
-        defaults = {
-            CONF_FOLDER: DEFAULT_FOLDER,
-            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-            CONF_PATH: self.hass.config.path() + DEFAULT_PATH,
-            CONF_DURATION: DEFAULT_GIF_DURATION,
-            CONF_IMAGE_SECURITY: DEFAULT_IMAGE_SECURITY,
-            CONF_IMAP_TIMEOUT: DEFAULT_IMAP_TIMEOUT,
-            CONF_GENERATE_MP4: False,
-            CONF_ALLOW_EXTERNAL: DEFAULT_ALLOW_EXTERNAL,
-            CONF_CUSTOM_IMG: DEFAULT_CUSTOM_IMG,
-        }
+    async def _show_imap_form(self, user_input):
+        """Show the configuration form to edit IMAP configuration data."""
+        auth_type = self._data.get(CONF_AUTH_TYPE, AUTH_TYPE_PASSWORD)
+        defaults = OAUTH_IMAP_DEFAULTS.get(
+            auth_type,
+            {
+                CONF_PORT: DEFAULT_PORT,
+                CONF_IMAP_SECURITY: "SSL",
+                CONF_VERIFY_SSL: False,
+            },
+        )
+        defaults[CONF_AUTH_TYPE] = auth_type
 
         return self.async_show_form(
-            step_id="config_2",
-            data_schema=_get_schema_step_2(self._data, user_input, defaults),
+            step_id="imap_config",
+            data_schema=_get_schema_imap(user_input, defaults),
             errors=self._errors,
         )
 
-    async def async_step_config_3(self, user_input=None):
-        """Configure form step 2."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(self._data)
-            if len(self._errors) == 0:
-                return await self.async_step_config_storage()
-            return await self._show_config_3(user_input)
 
-        return await self._show_config_3(user_input)
+class MailAndPackagesOptionsFlow(OptionsFlowStepsMixin, config_entries.OptionsFlow):
+    """Options flow for Mail and Packages."""
 
-    async def _show_config_3(self, user_input):
-        """Step 3 setup."""
-        # Defaults
-        defaults = {
-            CONF_CUSTOM_IMG_FILE: DEFAULT_CUSTOM_IMG_FILE,
-        }
-
-        return self.async_show_form(
-            step_id="config_3",
-            data_schema=_get_schema_step_3(user_input, defaults),
-            errors=self._errors,
-        )
-
-    async def async_step_config_amazon(self, user_input=None):
-        """Configure form step amazon."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(self._data)
-            if len(self._errors) == 0:
-                if self._data[CONF_CUSTOM_IMG]:
-                    return await self.async_step_config_3()
-                return await self.async_step_config_storage()
-
-            return await self._show_config_amazon(user_input)
-
-        return await self._show_config_amazon(user_input)
-
-    async def _show_config_amazon(self, user_input):
-        """Step 3 setup."""
-        # Defaults
-        defaults = {
-            CONF_AMAZON_DOMAIN: DEFAULT_AMAZON_DOMAIN,
-            CONF_AMAZON_FWDS: DEFAULT_AMAZON_FWDS,
-            CONF_AMAZON_DAYS: DEFAULT_AMAZON_DAYS,
-        }
-
-        return self.async_show_form(
-            step_id="config_amazon",
-            data_schema=_get_schema_step_amazon(user_input, defaults),
-            errors=self._errors,
-        )
-
-    async def async_step_config_storage(self, user_input=None):
-        """Configure form step storage."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(self._data)
-            if len(self._errors) == 0:
-                return self.async_create_entry(
-                    title=self._data[CONF_HOST], data=self._data
-                )
-            return await self._show_config_storage(user_input)
-
-        return await self._show_config_storage(user_input)
-
-    async def _show_config_storage(self, user_input):
-        """Step 3 setup."""
-        # Defaults
-        defaults = {
-            CONF_STORAGE: DEFAULT_STORAGE,
-        }
-
-        return self.async_show_form(
-            step_id="config_storage",
-            data_schema=_get_schema_step_storage(user_input, defaults),
-            errors=self._errors,
-        )
-
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
-        """Add reconfigure step to allow to reconfigure a config entry."""
-        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        assert self._entry
-        self._data = dict(self._entry.data)
-        self._errors = {}
-
-        if user_input is not None:
-            self._data.update(user_input)
-            valid = await _test_login(
-                user_input[CONF_HOST],
-                user_input[CONF_PORT],
-                user_input[CONF_USERNAME],
-                user_input[CONF_PASSWORD],
-                user_input[CONF_IMAP_SECURITY],
-                user_input[CONF_VERIFY_SSL],
-            )
-            if not valid:
-                self._errors["base"] = "communication"
-            else:
-                return await self.async_step_reconfig_2()
-
-            return await self._show_reconfig_form(user_input)
-
-        return await self._show_reconfig_form(user_input)
-
-    async def _show_reconfig_form(self, user_input):
-        """Show the configuration form to edit configuration data."""
-        return self.async_show_form(
-            step_id="reconfigure",
-            data_schema=_get_schema_step_1(user_input, self._data),
-            errors=self._errors,
-        )
-
-    async def async_step_reconfig_2(self, user_input=None):
-        """Configure form step 2."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(user_input)
-            if len(self._errors) == 0:
-                if any(
-                    sensor in self._data[CONF_RESOURCES] for sensor in AMAZON_SENSORS
-                ):
-                    return await self.async_step_reconfig_amazon()
-                if self._data[CONF_CUSTOM_IMG]:
-                    return await self.async_step_reconfig_3()
-
-                return await self.async_step_reconfig_storage()
-
-            return await self._show_reconfig_2(user_input)
-
-        return await self._show_reconfig_2(user_input)
-
-    async def _show_reconfig_2(self, user_input):
-        """Step 2 setup."""
-        if self._data[CONF_AMAZON_FWDS] == []:
-            self._data[CONF_AMAZON_FWDS] = "(none)"
-
-        return self.async_show_form(
-            step_id="reconfig_2",
-            data_schema=_get_schema_step_2(self._data, user_input, self._data),
-            errors=self._errors,
-        )
-
-    async def async_step_reconfig_3(self, user_input=None):
-        """Configure form step 2."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(self._data)
-            if len(self._errors) == 0:
-                return await self.async_step_reconfig_storage()
-
-            return await self._show_reconfig_3(user_input)
-
-        return await self._show_reconfig_3(user_input)
-
-    async def _show_reconfig_3(self, user_input):
-        """Step 3 setup."""
-        # Defaults
-        defaults = {
-            CONF_CUSTOM_IMG_FILE: DEFAULT_CUSTOM_IMG_FILE,
-        }
-
-        return self.async_show_form(
-            step_id="reconfig_3",
-            data_schema=_get_schema_step_3(user_input, defaults),
-            errors=self._errors,
-        )
-
-    async def async_step_reconfig_amazon(self, user_input=None):
-        """Configure form step amazon."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(self._data)
-            if len(self._errors) == 0:
-                if self._data[CONF_CUSTOM_IMG]:
-                    return await self.async_step_reconfig_3()
-
-                return await self.async_step_reconfig_storage()
-
-            return await self._show_reconfig_amazon(user_input)
-
-        return await self._show_reconfig_amazon(user_input)
-
-    async def _show_reconfig_amazon(self, user_input):
-        """Step 3 setup."""
-        return self.async_show_form(
-            step_id="reconfig_amazon",
-            data_schema=_get_schema_step_amazon(user_input, self._data),
-            errors=self._errors,
-        )
-
-    async def async_step_reconfig_storage(self, user_input=None):
-        """Configure form step storage."""
-        self._errors = {}
-        if user_input is not None:
-            self._data.update(user_input)
-            self._errors, user_input = await _validate_user_input(self._data)
-            if len(self._errors) == 0:
-                self.hass.config_entries.async_update_entry(
-                    self._entry, data=self._data
-                )
-                await self.hass.config_entries.async_reload(self._entry.entry_id)
-                _LOGGER.debug("%s reconfigured.", DOMAIN)
-                return self.async_abort(reason="reconfigure_successful")
-
-            return await self._show_reconfig_storage(user_input)
-
-        return await self._show_reconfig_storage(user_input)
-
-    async def _show_reconfig_storage(self, user_input):
-        """Step 3 setup."""
-        return self.async_show_form(
-            step_id="reconfig_storage",
-            data_schema=_get_schema_step_storage(user_input, self._data),
-            errors=self._errors,
-        )
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._entry = config_entry
+        self._data = {**config_entry.data, **config_entry.options}
+        self._errors: dict[str, Any] = {}

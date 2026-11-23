@@ -1,0 +1,24 @@
+binary_sensor:
+  - default_entity_id: binary_sensor.guest_home_binary
+    state: "{% if is_state('sensor.guest_keys', 'ny1') %}on{% else %}off{% endif
+      %}"
+    name: guest_home_binary
+
+  - default_entity_id: binary_sensor.tristan_home_binary
+    state: "{% if is_state('person.tristan', 'home') %}on{% else %}off{% endif
+      %}"
+    name: tristan_home_binary
+
+  - name: Home Presense
+    state: >
+      {{ is_state('person.tristan', 'home')
+          or is_state('person.christian_musto', 'home')
+          or is_state('sensor.guest_keys', 'ny1')
+          }}
+
+# binary_sensor:
+#   - default_entity_id: binary_sensor.workbench_power_state_binary
+#     state:
+#       "{% if is_state('switch.ny1_p_workbench_01_power', 'on') %}on{% else
+#       %}off{% endif %}"
+#     name: workbench_power_state_binary

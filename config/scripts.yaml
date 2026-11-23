@@ -42,3 +42,246 @@ t_spotify_volume_down:
       entity_id: media_player.spotify_tristan_van_tine
   description: Volume down by 5%
   icon: mdi:volume-minus
+noti_presense_check:
+  alias: Noti Presense Check
+  sequence:
+  - alias: Sample Presense Check
+    if:
+    - condition: state
+      entity_id: person.christian_musto
+      state:
+      - home
+    then:
+    - action: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        topic: Noti/blinkt
+        payload: rgb,0,255,0,0
+    - action: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        payload: 'rgb,1,255,0,0
+
+          '
+        topic: Noti/blinkt
+  - if:
+    - condition: state
+      entity_id: person.tristan
+      state: home
+    then:
+    - action: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        topic: Noti/blinkt
+        payload: 'rgb,2,255,30,0
+
+          '
+    - action: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        payload: rgb,3,255,30,0
+        topic: Noti/blinkt
+    alias: Tristan Presense Check
+  - alias: Guest Presense Check
+    if:
+    - condition: state
+      entity_id: sensor.guest_status
+      state: Home
+    then:
+    - action: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        topic: Noti/blinkt
+        payload: rgb,6,50,255,77
+    - action: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        payload: rgb,7,50,255,77
+        topic: Noti/blinkt
+  description: ''
+noti_clear:
+  alias: Noti Clear
+  sequence:
+  - action: mqtt.publish
+    metadata: {}
+    data:
+      qos: 0
+      retain: false
+      topic: Noti/blinkt
+      payload: clr
+  description: ''
+open_cam_feed_on_taskmaster:
+  sequence:
+  - action: fully_kiosk.load_url
+    target:
+      device_id: 4b5549b139d38faaeda3f4fa124d9b34
+    data:
+      url: https://ha.v1d1o7.net/tbr-dashboard/section#camera-feed
+    enabled: false
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.taskmaster_campage
+        state: 'on'
+      sequence:
+      - action: button.press
+        metadata: {}
+        data: {}
+        target:
+          entity_id: button.taskmaster_load_start_url
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.taskmaster_campage
+        state: 'off'
+      sequence:
+      - action: fully_kiosk.load_url
+        target:
+          device_id: 4b5549b139d38faaeda3f4fa124d9b34
+        data:
+          url: https://ha.v1d1o7.net/tbr-dashboard/section#camera-feed
+  alias: Open CAM feed on Taskmaster
+  description: ''
+inovelli_orange_notification:
+  sequence:
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 255
+    subtype: '16[0xff] on endpoint 0 (LED Indicator: Effect Color) on endpoint 0'
+    value: 15
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 65280
+    subtype: '16[0xff00] on endpoint 0 (LED Indicator: Effect Brightness) on endpoint
+      0'
+    value: 10
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 16711680
+    subtype: '16[0xff0000] on endpoint 0 (LED Indicator: Effect Duration) on endpoint
+      0'
+    value: 15
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 2130706432
+    subtype: '16[0x7f000000] on endpoint 0 (LED Indicator: Effect Type) on endpoint
+      0'
+    value: 5
+  alias: Inovelli Orange Notification
+  description: ''
+  mode: parallel
+  max: 5
+inovelli_red_notification:
+  sequence:
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 255
+    subtype: '16[0xff] on endpoint 0 (LED Indicator: Effect Color) on endpoint 0'
+    value: 1
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 65280
+    subtype: '16[0xff00] on endpoint 0 (LED Indicator: Effect Brightness) on endpoint
+      0'
+    value: 10
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 16711680
+    subtype: '16[0xff0000] on endpoint 0 (LED Indicator: Effect Duration) on endpoint
+      0'
+    value: 15
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 16
+    bitmask: 2130706432
+    subtype: '16[0x7f000000] on endpoint 0 (LED Indicator: Effect Type) on endpoint
+      0'
+    value: 5
+  alias: Inovelli Red Notification
+  description: ''
+  mode: parallel
+  max: 5
+tbr_sw_green_conf:
+  sequence:
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 13
+    bitmask:
+    subtype: '13 (LED Indicator: Color) on endpoint 0'
+    value: 90
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 13
+    bitmask:
+    subtype: '13 (LED Indicator: Color) on endpoint 0'
+    value: 170
+  alias: TBR SW Green Conf
+  description: ''
+tbr_sw_dim_conf:
+  sequence:
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 13
+    bitmask:
+    subtype: '13 (LED Indicator: Color) on endpoint 0'
+    value: 25
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 1
+      milliseconds: 0
+  - device_id: 4db21236790451e4cbd1addb37f7d6e5
+    domain: zwave_js
+    type: set_config_parameter
+    endpoint: 0
+    parameter: 13
+    bitmask:
+    subtype: '13 (LED Indicator: Color) on endpoint 0'
+    value: 170
+  alias: TBR SW Dim Conf
+  description: ''

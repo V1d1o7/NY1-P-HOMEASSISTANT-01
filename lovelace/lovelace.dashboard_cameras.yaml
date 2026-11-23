@@ -1,0 +1,16 @@
+config:
+  views:
+  - cards: []
+    max_columns: 1
+    sections:
+    - cards:
+      - camera_view: live
+        entity: camera.vivotek_camera
+        image: https://demo.home-assistant.io/stub_config/bedroom.png
+        show_name: false
+        show_state: false
+        type: picture-entity
+      type: grid
+    subview: true
+    title: Cameras
+    type: sections

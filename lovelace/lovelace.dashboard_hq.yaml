@@ -1,0 +1,926 @@
+config:
+  kiosk_mode:
+    non_admin_settings:
+      hide_header: true
+      hide_search: false
+      hide_sidebar: true
+  views:
+  - badges:
+    - card_mod:
+        style: ":host {\n  position: relative;\n  overflow: visible;\n}\n\n:host::after\
+          \ {\n  {% set raw = states('sensor.surgas') %}\n  {% set num = raw | float(none)\
+          \ %}\n\n  {% if num is not none and raw not in ['unknown','unavailable','none','']\
+          \ %}\n    content: \"{{ num | round(0) | int }}\";\n  {% else %}\n    content:\
+          \ \"!\";\n  {% endif %}\n\n  position: absolute;\n  top: -6px;\n  right:\
+          \ -6px;\n  width: 18px;\n  height: 18px;\n  border-radius: 999px;\n\n  display:\
+          \ flex;\n  align-items: center;\n  justify-content: center;\n\n  font-weight:\
+          \ 600;\n  font-size: 10px;\n  line-height: 18px;\n\n  /* Dynamic bubble\
+          \ color */\n  {% if num is none or raw in ['unknown','unavailable','none','']\
+          \ %}\n    background: grey;\n  {% elif num < 80 %}\n    background: red;\n\
+          \  {% elif num <= 175 %}\n    background: green;\n  {% elif num <= 190 %}\n\
+          \    background: yellow;\n  {% else %}\n    background: purple;\n  {% endif\
+          \ %}\n\n  color: white;\n  border: 2px solid var(--card-background-color);\n\
+          \  box-shadow: 0 2px 6px rgba(0,0,0,0.35);\n\n  {% if raw not in ['unknown','unavailable','none','']\
+          \ %}\n    opacity: 1;\n  {% else %}\n    opacity: 0;\n  {% endif %}\n}\n"
+      color: "{% if is_state(entity, 'home') %}\n  orange\n{% else %}\n  grey\n{%\
+        \ endif %}"
+      content: "{% if is_state(entity, 'not_home') %}\n  \n{% else %}\n{% endif %}"
+      entity: person.tristan
+      hold_action:
+        action: more-info
+      icon: mdi:projector
+      label: Tristan
+      tap_action:
+        action: perform-action
+        data: {}
+        perform_action: button.press
+        target:
+          entity_id: button.taskmaster_load_start_url
+      type: custom:mushroom-template-badge
+    - color: "{% if is_state(entity, 'home') %}\n  red\n{% else %}\n  grey\n{% endif\
+        \ %}"
+      content: '{% if is_state(entity, ''not_home'') %}
+
+        {% else %}
+
+        {% endif %}'
+      entity: device_tracker.cmusto_iphone_2
+      icon: mdi:microphone-message
+      label: Christian
+      tap_action:
+        action: navigate
+        navigation_path: '#lx'
+      type: custom:mushroom-template-badge
+    - color: "{% if is_state(entity, 'home') %}\n  green\n{% else %}\n  grey\n{% endif\
+        \ %}"
+      content: '{% if is_state(entity, ''not_home'') %}
+
+        {% else %}
+
+        {% endif %}'
+      entity: person.clark_yang
+      icon: mdi:wardrobe
+      label: Clark
+      tap_action:
+        action: navigate
+        navigation_path: '#enviro'
+      type: custom:mushroom-template-badge
+    - entity: weather.forecast_home
+      hold_action:
+        action: more-info
+      name:
+      - text: "Temp\u2800\u2800"
+        type: text
+      - text: "\u2800\u2800Wind"
+        type: text
+      show_entity_picture: false
+      show_icon: true
+      show_name: true
+      show_state: true
+      state_content:
+      - temperature
+      - wind_speed
+      type: entity
+    - card_mod:
+        style: ":host {\n  position: relative;\n  overflow: visible;\n}\n\n:host::after\
+          \ {\n  content: \"!\";\n  position: absolute;\n  top: -6px;\n  right: -6px;\n\
+          \  width: 18px;\n  height: 18px;\n  border-radius: 999px;\n\n  display:\
+          \ flex;\n  align-items: center;\n  justify-content: center;\n\n  font-weight:\
+          \ 800;\n  font-size: 12px;\n  line-height: 18px;\n\n  background: var(--error-color);\n\
+          \  color: var(--text-primary-color);\n  border: 2px solid var(--card-background-color);\n\
+          \  box-shadow: 0 2px 6px rgba(0,0,0,0.35);\n\n  {% if is_state('binary_sensor.a_service_alerts','on')\n\
+          \     or is_state('binary_sensor.c_service_alerts','on') %}\n  opacity:\
+          \ 1;\n  {% else %}\n  opacity: 0;\n  {% endif %}\n}\n"
+      color: red
+      content: '{{ state_attr(''sensor.1_utica_av'', ''headsign'') }}
+
+        {% set v = states(''sensor.1_utica_av'') | float(0) %}
+
+        {{ 0 if v < 1 else v | round(0) | int }}min'
+      entity: sensor.1_utica_av
+      icon: mdi:mushroom
+      picture: '{{ state_attr(''sensor.1_utica_av'', ''entity_picture'') }}'
+      tap_action:
+        action: navigate
+        navigation_path: '#mta'
+      type: custom:mushroom-template-badge
+    - card_mod:
+        style: ":host {\n  position: relative;\n  overflow: visible;\n}\n\n:host::after\
+          \ {\n  content: \"!\";\n  position: absolute;\n  top: -6px;\n  right: -6px;\n\
+          \  width: 18px;\n  height: 18px;\n  border-radius: 999px;\n\n  display:\
+          \ flex;\n  align-items: center;\n  justify-content: center;\n\n  font-weight:\
+          \ 800;\n  font-size: 12px;\n  line-height: 18px;\n\n  background: var(--error-color);\n\
+          \  color: var(--text-primary-color);\n  border: 2px solid var(--card-background-color);\n\
+          \  box-shadow: 0 2px 6px rgba(0,0,0,0.35);\n\n  {% if is_state('binary_sensor.3_service_alerts','on')\n\
+          \     or is_state('binary_sensor.4_service_alerts','on') %}\n  opacity:\
+          \ 1;\n  {% else %}\n  opacity: 0;\n  {% endif %}\n}\n"
+      color: red
+      content: '{{ state_attr(''sensor.1_crown_hts_utica_av'', ''headsign'') }}
+
+        {% set v = states(''sensor.1_crown_hts_utica_av'') | float(0) %}
+
+        {{ 0 if v < 1 else v | round(0) | int }}min'
+      entity: sensor.1_utica_av
+      icon: mdi:mushroom
+      picture: '{{ state_attr(''sensor.1_crown_hts_utica_av'', ''entity_picture'')
+        }}'
+      tap_action:
+        action: navigate
+        navigation_path: '#mta'
+      type: custom:mushroom-template-badge
+    - color: purple
+      content: '{% set players = [''media_player.computer''] %} {% set p = players
+        | select(''is_state'',''playing'') | list %} {% set p = p if p else players
+        | select(''is_state'',''paused'') | list %} {% if p %}{{ (state_attr(p[0],''media_title'')
+        or state_attr(p[0],''friendly_name''))[:22] }}{% endif %}'
+      entity: media_player.computer
+      icon: mdi:music
+      picture: '{% set players = [''media_player.computer''] %} {% set p = players
+        | select(''is_state'',''playing'') | list %} {% set p = p if p else players
+        | select(''is_state'',''paused'') | list %} {{ state_attr(p[0], ''entity_picture'')
+        if p else '''' }}'
+      tap_action:
+        action: navigate
+        navigation_path: '#media'
+      type: custom:mushroom-template-badge
+      visibility:
+      - condition: or
+        conditions:
+        - condition: state
+          entity: media_player.computer
+          state:
+          - playing
+          - paused
+    cards: []
+    sections:
+    - cards:
+      - card_mod:
+          style: "ha-card {\n  border-radius: 18px;\n\n  /* Accent border */\n  border:\
+            \ 1px solid rgba(0, 170, 255, 0.45);\n\n  /* Dark background with subtle\
+            \ color tint */\n  background:\n    linear-gradient(\n      180deg,\n\
+            \      rgba(0, 170, 255, 0.08),\n      rgba(10, 12, 18, 0.95)\n    );\n\
+            \n  box-shadow:\n    0 0 0 1px rgba(0, 170, 255, 0.25),\n    0 12px 30px\
+            \ rgba(0, 0, 0, 0.65);\n\n  overflow: hidden;\n}\n\n/* Header */\n.card-header\
+            \ {\n  padding: 14px 16px 10px 16px;\n  font-size: 1.05rem;\n  font-weight:\
+            \ 800;\n  letter-spacing: 0.3px;\n\n  /* Header color pop */\n  color:\
+            \ #e6f4ff;\n  border-bottom: 1px solid rgba(0, 170, 255, 0.25);\n}\n\n\
+            /* Body spacing */\n#root, .content {\n  padding: 0 12px 12px 12px !important;\n\
+            }\n\n/* Secondary text */\n.secondary, .subtitle, .info {\n  color: rgba(200,\
+            \ 220, 235, 0.7) !important;\n}\n\n    /* ===== EMPTY STATE ===== */\n\
+            /* Remove \"You have no to-do items!\" text */\n.empty,\n.no-items,\n\
+            ha-empty-state,\nha-check-list-item[empty],\n.message {\n  display: none\
+            \ !important;\n}\n\n/* Smooth typography */\nha-card * {\n  -webkit-font-smoothing:\
+            \ antialiased;\n}\n"
+        display_order: none
+        entity: todo.apt_shopping_list
+        grid_options:
+          columns: 12
+          rows: 7
+        hide_completed: true
+        title: Shopping List
+        type: todo-list
+      - card_mod:
+          style: "ha-card {\n  border-radius: 18px;\n\n  /* Green accent border */\n\
+            \  border: 1px solid rgba(0, 170, 80, 0.45);\n\n  /* Dark background with\
+            \ subtle green tint */\n  background:\n    linear-gradient(\n      180deg,\n\
+            \      rgba(0, 170, 80, 0.08),\n      rgba(10, 12, 18, 0.95)\n    );\n\
+            \n  box-shadow:\n    0 0 0 1px rgba(0, 170, 80, 0.25),\n    0 12px 30px\
+            \ rgba(0, 0, 0, 0.65);\n\n  overflow: hidden;\n}\n\n/* Header */\n.card-header\
+            \ {\n  padding: 14px 16px 10px 16px;\n  font-size: 1.05rem;\n  font-weight:\
+            \ 800;\n  letter-spacing: 0.3px;\n\n  /* Header color pop */\n  color:\
+            \ rgba(220, 255, 235, 0.95);\n  border-bottom: 1px solid rgba(0, 170,\
+            \ 80, 0.25);\n}\n\n/* Body spacing */\n#root, .content {\n  padding: 0\
+            \ 12px 12px 12px !important;\n}\n\n/* Secondary text */\n.secondary, .subtitle,\
+            \ .info {\n  color: rgba(190, 230, 210, 0.7) !important;\n}\n\n    /*\
+            \ ===== EMPTY STATE ===== */\n/* Remove \"You have no to-do items!\" text\
+            \ */\n.empty,\n.no-items,\nha-empty-state,\nha-check-list-item[empty],\n\
+            .message {\n  display: none !important;\n}\n\n/* Smooth typography */\n\
+            ha-card * {\n  -webkit-font-smoothing: antialiased;\n}\n"
+        display_order: none
+        entity: todo.apt_needs
+        grid_options:
+          columns: 12
+          rows: 7
+        hide_completed: true
+        title: APT Needs
+        type: todo-list
+      column_span: 2
+      type: grid
+    - cards:
+      - allDayBottom: true
+        calShowDescription: false
+        card_mod:
+          style: "ha-card {\n  border-radius: 18px;\n  border: 1px solid rgba(0, 170,\
+            \ 255, 0.45);\n  background:\n    linear-gradient(\n      180deg,\n  \
+            \    rgba(0, 170, 255, 0.08),\n      rgba(10, 12, 18, 0.95)\n    );\n\n\
+            \  box-shadow:\n    0 0 0 1px rgba(0, 170, 255, 0.25),\n    0 12px 30px\
+            \ rgba(0, 0, 0, 0.65);\n  overflow: hidden;\n  height: 100%;\n  box-sizing:\
+            \ border-box;\n}\n\n.month-grid {\n  height: 100%;\n  max-height: 100%;\n\
+            \  overflow: hidden;\n}\n\n.calTitleContainer {\n  padding: 4px 8px 6px\
+            \ 8px !important;\n  min-height: 0 !important;\n}\n\n.calTableContainer\
+            \ {\n  overflow: hidden !important;\n}\n\ntable.cal {\n  table-layout:\
+            \ fixed !important;\n  width: 100% !important;\n}\n\nth.cal {\n  padding:\
+            \ 2px 0 4px 0 !important;\n  font-size: 0.78rem !important;\n  line-height:\
+            \ 1.1 !important;\n}\n\ntd.cal.day {\n  padding: 2px !important;\n  height:\
+            \ 42px !important;\n  max-height: 42px !important;\n  vertical-align:\
+            \ middle !important;\n}\n\n.calDay {\n  height: 40px !important;\n  min-height:\
+            \ 40px !important;\n  max-height: 40px !important;\n  aspect-ratio: unset\
+            \ !important;\n  overflow: hidden !important;\n  margin: auto !important;\n\
+            }\n\n.calDay .iconDiv {\n  padding-top: 10px !important;\n  padding-bottom:\
+            \ 2px !important;\n  line-height: 1.05 !important;\n  white-space: nowrap\
+            \ !important;\n  overflow: hidden !important;\n}\n\n.calIcon {\n  --mdc-icon-size:\
+            \ 10px !important;\n  width: 10px !important;\n  height: 10px !important;\n\
+            \  margin: 0 1px !important;\n}\n\n.currentDay {\n  width: 16px !important;\n\
+            \  height: 16px !important;\n  line-height: 16px !important;\n  font-size:\
+            \ 0.75rem !important;\n}\n\n.title-bar,\n.head {\n  padding: 5px 8px !important;\n\
+            \  min-height: 0 !important;\n  line-height: 1.15 !important;\n}\n"
+        compactMode: true
+        defaultMode: Calendar
+        disableCalEventLink: false
+        disableCalLink: true
+        disableCalLocationLink: true
+        enableModeChange: true
+        entities:
+        - color: chocolate
+          entity: calendar.tdvantine_gmail_com
+          icon: mdi:projector
+          name: Tristan work
+        - color: red
+          entity: calendar.christian_musto97_gmail_com
+          name: Christian's Calendar
+        - color: green
+          entity: calendar.tsungjuyang_gmail_com
+          icon: mdi:wardrobe
+        firstDayOfWeek: 0
+        grid_options:
+          columns: full
+          rows: 8
+        hoursOnSameLine: false
+        linkTarget: _self
+        name: Schedules
+        refreshInterval: 30
+        showCalendarName: true
+        showDate: true
+        showDeclined: false
+        showLocation: false
+        showRelativeTime: false
+        showTimeRemaining: false
+        type: custom:atomic-calendar-revive
+      - card_mod:
+          style: "ha-card {\n  border-radius: 18px;\n\n  /* Default (no notes) accent\
+            \ \u2014 purple */\n  --accent: 160, 120, 255;\n\n  border: 1px solid\
+            \ rgba(var(--accent), 0.45);\n  background:\n    linear-gradient(\n  \
+            \    180deg,\n      rgba(var(--accent), 0.08),\n      rgba(10, 12, 18,\
+            \ 0.95)\n    );\n\n  box-shadow:\n    0 0 0 1px rgba(var(--accent), 0.25),\n\
+            \    0 12px 30px rgba(0, 0, 0, 0.65);\n\n  overflow: hidden;\n  transition:\
+            \ all 200ms ease;\n}\n\n/* ===== Header ===== */\n.card-header {\n  padding:\
+            \ 14px 16px 10px 16px;\n  font-size: 1.05rem;\n  font-weight: 800;\n \
+            \ letter-spacing: 0.3px;\n  color: rgba(240, 230, 255, 0.95);\n  border-bottom:\
+            \ 1px solid rgba(var(--accent), 0.25);\n  transition: all 200ms ease;\n\
+            }\n\n/* ===== Body spacing ===== */\n#root, .content {\n  padding: 0 12px\
+            \ 12px 12px !important;\n}\n\n/* ===== Secondary text ===== */\n.secondary,\
+            \ .subtitle, .info {\n  color: rgba(215, 205, 235, 0.7) !important;\n\
+            }\n\n/* ===== EMPTY STATE ===== */\n/* Remove \"You have no to-do items!\"\
+            \ text */\n.empty,\n.no-items,\nha-empty-state,\nha-check-list-item[empty],\n\
+            .message {\n  display: none !important;\n}\n\n/* ===== ALERT STATE =====\
+            \ */\n/* If ANY visible todo item exists \u2192 turn RED */\nha-card:has(ha-check-list-item),\n\
+            ha-card:has(.todo-item) {\n  --accent: 255, 80, 80;\n}\n\nha-card:has(ha-check-list-item)\
+            \ .card-header,\nha-card:has(.todo-item) .card-header {\n  color: rgba(255,\
+            \ 230, 230, 0.95);\n  border-bottom-color: rgba(255, 80, 80, 0.35);\n\
+            }\n\n/* ===== Typography smoothing ===== */\nha-card * {\n  -webkit-font-smoothing:\
+            \ antialiased;\n}\n"
+        display_order: none
+        entity: todo.shopping_list
+        grid_options:
+          columns: 24
+          rows: 4
+        hide_completed: true
+        title: Important Notes
+        type: todo-list
+      - button_type: name
+        card_type: pop-up
+        cards:
+        - card_mod:
+            style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(0,\
+              \ 170, 255, 0.22);\n  background: rgba(0, 170, 255, 0.05);\n  box-shadow:\
+              \ 0 6px 16px rgba(0,0,0,0.28);\n  padding: 6px 10px 5px 10px;\n}\n.title\
+              \ {\n  color: #e6f4ff !important;\n  font-weight: 900 !important;\n\
+              \  letter-spacing: 0.25px !important;\n  font-size: 1.5rem !important;\n\
+              \  line-height: 1.5 !important;\n}\n"
+          grid_options:
+            columns: 12
+            rows: auto
+          subtitle_tap_action:
+            action: none
+          title: To City
+          title_tap_action:
+            action: none
+          type: custom:mushroom-title-card
+        - cards:
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.1_utica_av
+              name: ${states['sensor.1_utica_av']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.1_utica_av
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.2_utica_av
+              name: ${states['sensor.2_utica_av']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.2_utica_av
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.3_utica_av
+              name: ${states['sensor.3_utica_av']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.3_utica_av
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.4_utica_av
+              name: ${states['sensor.4_utica_av']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.4_utica_av
+            type: custom:config-template-card
+          grid_options:
+            columns: 6
+            rows: auto
+          type: vertical-stack
+        - cards:
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.1_crown_hts_utica_av
+              name: ${states['sensor.1_crown_hts_utica_av']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.1_crown_hts_utica_av
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.2_crown_hts_utica_av
+              name: ${states['sensor.2_crown_hts_utica_av']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.2_crown_hts_utica_av
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.3_crown_hts_utica_av
+              name: ${states['sensor.3_crown_hts_utica_av']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.3_crown_hts_utica_av
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.4_crown_hts_utica_av
+              name: ${states['sensor.4_crown_hts_utica_av']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.4_crown_hts_utica_av
+            type: custom:config-template-card
+          grid_options:
+            columns: 6
+            rows: auto
+          type: vertical-stack
+        - card_mod:
+            style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(0,\
+              \ 170, 255, 0.22);\n  background: rgba(0, 170, 255, 0.05);\n  box-shadow:\
+              \ 0 6px 16px rgba(0,0,0,0.28);\n  padding: 6px 10px 5px 10px;\n}\n.title\
+              \ {\n  color: #e6f4ff !important;\n  font-weight: 900 !important;\n\
+              \  letter-spacing: 0.25px !important;\n  font-size: 1.5rem !important;\n\
+              \  line-height: 1.5 !important;\n}\n"
+          grid_options:
+            columns: 12
+            rows: auto
+          subtitle_tap_action:
+            action: none
+          title: From City
+          title_tap_action:
+            action: none
+          type: custom:mushroom-title-card
+        - cards:
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.1_utica_av_2
+              name: ${states['sensor.1_utica_av_2']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.1_utica_av_2
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.2_utica_av_2
+              name: ${states['sensor.2_utica_av_2']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.2_utica_av_2
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.3_utica_av_2
+              name: ${states['sensor.3_utica_av_2']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.3_utica_av_2
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.4_utica_av_2
+              name: ${states['sensor.4_utica_av_2']?.attributes?.headsign ?? 'Utica
+                AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.4_utica_av_2
+            type: custom:config-template-card
+          grid_options:
+            columns: 6
+            rows: auto
+          type: vertical-stack
+        - cards:
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.1_crown_hts_utica_av_2
+              name: ${states['sensor.1_crown_hts_utica_av_2']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.1_crown_hts_utica_av_2
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.2_crown_hts_utica_av_2
+              name: ${states['sensor.2_crown_hts_utica_av_2']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.2_crown_hts_utica_av_2
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.3_crown_hts_utica_av_2
+              name: ${states['sensor.3_crown_hts_utica_av_2']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.3_crown_hts_utica_av_2
+            type: custom:config-template-card
+          - card:
+              card_mod:
+                style: "ha-card {\n  border-radius: 14px;\n  border: 1px solid rgba(255,255,255,0.06);\n\
+                  \  background: rgba(255,255,255,0.02);\n  box-shadow: none;\n}\n"
+              entity: sensor.4_crown_hts_utica_av_2
+              name: ${states['sensor.4_crown_hts_utica_av_2']?.attributes?.headsign
+                ?? 'Crown Hts - Utica AV'}
+              show_entity_picture: true
+              type: tile
+            entities:
+            - sensor.4_crown_hts_utica_av_2
+            type: custom:config-template-card
+          grid_options:
+            columns: 6
+            rows: auto
+          type: vertical-stack
+        - card_mod:
+            style: "ha-card {\n  border-radius: 18px;\n  border: 1px solid rgba(255,\
+              \ 80, 80, 0.45);\n  background: rgba(255, 80, 80, 0.06);\n  box-shadow:\
+              \ 0 10px 26px rgba(0,0,0,0.6);\n}\n.card-header {\n  padding: 14px 16px\
+              \ 10px 16px;\n  font-size: 1.05rem;\n  font-weight: 800;\n  letter-spacing:\
+              \ 0.3px;\n  color: rgba(255,230,230,0.95);\n  border-bottom: 1px solid\
+              \ rgba(255, 80, 80, 0.25);\n}\nha-markdown {\n  padding: 10px 16px 14px\
+              \ 16px;\n  color: rgba(230,244,255,0.88);\n}\n"
+          content: "{% set lines = [\n  dict(entity=\"binary_sensor.a_service_alerts\"\
+            , icon=\"https://raw.githubusercontent.com/bcpearce/homeassistant-gtfs-realtime/main/resources/NYCT_Bullets/A.svg\"\
+            ),\n  dict(entity=\"binary_sensor.c_service_alerts\", icon=\"https://raw.githubusercontent.com/bcpearce/homeassistant-gtfs-realtime/main/resources/NYCT_Bullets/C.svg\"\
+            ),\n  dict(entity=\"binary_sensor.3_service_alerts\", icon=\"https://raw.githubusercontent.com/bcpearce/homeassistant-gtfs-realtime/main/resources/NYCT_Bullets/3.svg\"\
+            ),\n  dict(entity=\"binary_sensor.4_service_alerts\", icon=\"https://raw.githubusercontent.com/bcpearce/homeassistant-gtfs-realtime/main/resources/NYCT_Bullets/4.svg\"\
+            )\n] %}\n\n{% for l in lines %}\n  {% if states(l.entity) == \"on\" %}\n\
+            \    {% for i in range(1, 10) %}\n      {% set h = state_attr(l.entity,\
+            \ \"header_\" ~ i) %}\n      {% if h %}\n<img src=\"{{ l.icon }}\" width=\"\
+            26\" style=\"vertical-align:middle; margin-right:8px;\"> **{{ h }}**\n\
+            \      {% endif %}\n    {% endfor %}\n  {% endif %}\n{% endfor %}\n"
+          grid_options:
+            columns: 12
+            rows: auto
+          title: "\U0001F6A8 Service Alerts"
+          type: markdown
+        hash: '#mta'
+        name: ''
+        show_header: false
+        show_icon: false
+        show_name: false
+        sub_button:
+          bottom: []
+          main: []
+        type: custom:bubble-card
+      - button_type: name
+        card_type: pop-up
+        cards:
+        - cards:
+          - entity: light.mbr_lx
+            fill_container: false
+            name: MBR LX
+            type: custom:mushroom-light-card
+            use_light_color: true
+          - entity: light.mbr_closet_lx
+            fill_container: false
+            name: MBR Closet LX
+            type: custom:mushroom-light-card
+            use_light_color: true
+          - entity: light.ny1_p_s1m_02_sink_lights
+            fill_container: false
+            name: MBR Sink Lights
+            type: custom:mushroom-light-card
+            use_light_color: true
+          - entity: light.mbr_bathroom_overhead_lights
+            fill_container: false
+            name: MBR Bathroom Overhead
+            type: custom:mushroom-light-card
+            use_light_color: true
+          grid_options:
+            columns: 12
+            rows: auto
+          title: MBR LX
+          type: vertical-stack
+        - cards:
+          - entity: light.small_room_lx
+            fill_container: false
+            name: Clark Overhead
+            type: custom:mushroom-light-card
+            use_light_color: true
+          grid_options:
+            columns: 12
+            rows: auto
+          title: Clark LX
+          type: vertical-stack
+        - cards:
+          - entity: light.common_bathroom_sink_lx
+            fill_container: false
+            name: Sink LX
+            type: custom:mushroom-light-card
+            use_light_color: true
+          - collapsible_controls: false
+            entity: light.ny1_p_2pm_01_shower_lights
+            fill_container: false
+            name: Overhead LX
+            show_brightness_control: false
+            type: custom:mushroom-light-card
+            use_light_color: true
+          grid_options:
+            columns: 12
+            rows: auto
+          title: Hallway Bathroom
+          type: vertical-stack
+        - cards:
+          - entity: light.ny1_p_s1m_03_loft_lights
+            fill_container: false
+            name: Loft LX
+            type: custom:mushroom-light-card
+            use_light_color: true
+          grid_options:
+            columns: 12
+            rows: auto
+          title: Loft
+          type: vertical-stack
+        hash: '#lx'
+        sub_button:
+          bottom: []
+          main: []
+        type: custom:bubble-card
+      - button_action: {}
+        button_type: name
+        card_layout: normal
+        card_type: pop-up
+        cards:
+        - attribute: current_temperature
+          button_action: {}
+          button_type: switch
+          card_layout: normal
+          card_type: climate
+          entity: climate.ny1_p_aircon_01
+          force_icon: true
+          grid_options:
+            columns: 12
+          icon: mdi:hvac
+          modules:
+          - default
+          name: Tristan
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          state_color: true
+          styles: "  * { \n    font-size: 14px !important;\n  }\n ${card.querySelector('.bubble-name').innerText\
+            \ = \"Tristan\\n\" + hass.states['climate.ny1_p_aircon_01'].attributes.temperature\
+            \ + \"\xB0F\"}"
+          sub_button:
+            bottom: []
+            main:
+            - attribute: temperature
+              entity: select.ny1_p_aircon_01_vertical_vane
+              icon: mdi:arrow-up-down
+              name: Swing Modes
+              select_attribute: swing_modes
+              show_arrow: false
+              show_attribute: false
+              show_background: false
+              show_state: false
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_01
+              name: Mode
+              select_attribute: hvac_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              state_background: true
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_01
+              force_icon: true
+              icon: mdi:fan
+              name: Fan Modes
+              select_attribute: fan_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              sub_button_type: select
+          tap_action:
+            action: more-info
+          type: custom:bubble-card
+        - attribute: current_temperature
+          button_action: {}
+          button_type: switch
+          card_layout: normal
+          card_type: climate
+          entity: climate.ny1_p_aircon_02
+          force_icon: true
+          grid_options:
+            columns: 12
+          icon: mdi:hvac
+          modules:
+          - default
+          name: Tristan
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          state_color: true
+          styles: "  * { \n    font-size: 14px !important;\n  }\n ${card.querySelector('.bubble-name').innerText\
+            \ = \"Christian\\n\" + hass.states['climate.ny1_p_aircon_02'].attributes.temperature\
+            \ + \"\xB0F\"}"
+          sub_button:
+            bottom: []
+            main:
+            - attribute: temperature
+              entity: select.ny1_p_aircon_02_vertical_vane
+              icon: mdi:arrow-up-down
+              name: Swing Modes
+              select_attribute: swing_modes
+              show_arrow: false
+              show_attribute: false
+              show_background: false
+              show_state: false
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_02
+              name: Mode
+              select_attribute: hvac_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              state_background: true
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_02
+              force_icon: true
+              icon: mdi:fan
+              name: Fan Modes
+              select_attribute: fan_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              sub_button_type: select
+          tap_action:
+            action: more-info
+          type: custom:bubble-card
+        - attribute: current_temperature
+          button_action: {}
+          button_type: switch
+          card_layout: normal
+          card_type: climate
+          entity: climate.ny1_p_aircon_03
+          force_icon: true
+          grid_options:
+            columns: 12
+          icon: mdi:hvac
+          modules:
+          - default
+          name: Tristan
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          state_color: true
+          styles: "  * { \n    font-size: 14px !important;\n  }\n ${card.querySelector('.bubble-name').innerText\
+            \ = \"Living Room\\n\" + hass.states['climate.ny1_p_aircon_03'].attributes.temperature\
+            \ + \"\xB0F\"}"
+          sub_button:
+            bottom: []
+            main:
+            - attribute: temperature
+              entity: select.ny1_p_aircon_03_vertical_vane
+              icon: mdi:arrow-up-down
+              name: Swing Modes
+              select_attribute: swing_modes
+              show_arrow: false
+              show_attribute: false
+              show_background: false
+              show_state: false
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_03
+              name: Mode
+              select_attribute: hvac_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              state_background: true
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_03
+              force_icon: true
+              icon: mdi:fan
+              name: Fan Modes
+              select_attribute: fan_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              sub_button_type: select
+          tap_action:
+            action: more-info
+          type: custom:bubble-card
+        - attribute: current_temperature
+          button_action: {}
+          button_type: switch
+          card_layout: normal
+          card_type: climate
+          entity: climate.ny1_p_aircon_04
+          force_icon: true
+          grid_options:
+            columns: 12
+          icon: mdi:hvac
+          modules:
+          - default
+          name: Tristan
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          state_color: true
+          styles: "  * { \n    font-size: 14px !important;\n  }\n ${card.querySelector('.bubble-name').innerText\
+            \ = \"Clark\\n\" + hass.states['climate.ny1_p_aircon_04'].attributes.temperature\
+            \ + \"\xB0F\"}"
+          sub_button:
+            bottom: []
+            main:
+            - attribute: temperature
+              entity: select.ny1_p_aircon_04_vertical_vane
+              icon: mdi:arrow-up-down
+              name: Swing Modes
+              select_attribute: swing_modes
+              show_arrow: false
+              show_attribute: false
+              show_background: false
+              show_state: false
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_04
+              name: Mode
+              select_attribute: hvac_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              state_background: true
+              sub_button_type: select
+            - entity: climate.ny1_p_aircon_04
+              force_icon: true
+              icon: mdi:fan
+              name: Fan Modes
+              select_attribute: fan_modes
+              show_arrow: false
+              show_background: false
+              show_icon: true
+              show_state: false
+              sub_button_type: select
+          tap_action:
+            action: more-info
+          type: custom:bubble-card
+        hash: '#enviro'
+        name: Climate Controll
+        show_header: true
+        show_icon: false
+        show_name: true
+        sub_button:
+          bottom: []
+          main: []
+        type: custom:bubble-card
+      - button_type: name
+        card_type: pop-up
+        cards:
+        - card_type: media-player
+          entity: media_player.computer
+          name: Living Room
+          show_state: true
+          type: custom:bubble-card
+          visibility:
+          - condition: state
+            entity: media_player.living_room
+            state_not: 'off'
+        hash: '#media'
+        name: Now Playing
+        show_header: true
+        show_icon: false
+        show_name: true
+        sub_button:
+          bottom: []
+          main: []
+        type: custom:bubble-card
+      column_span: 2
+      type: grid
+    title: Home

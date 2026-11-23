@@ -1,0 +1,429 @@
+config:
+  kiosk_mode:
+    mobile_settings:
+      hide_header: false
+      hide_sidebar: false
+  views:
+  - cards:
+    - button_type: name
+      card_type: pop-up
+      cards:
+      - cards:
+        - button_type: state
+          card_type: button
+          entity: sensor.tbr_weather_humidity
+          icon: mdi:water-percent
+          name: Humidity
+          show_state: true
+          type: custom:bubble-card
+        - button_type: state
+          card_type: button
+          entity: sensor.ny1_p_airsensor_01
+          icon: mdi:blur
+          name: Air Quality
+          show_state: true
+          type: custom:bubble-card
+        - button_type: state
+          card_type: button
+          entity: sensor.tbr_weather_pressure
+          icon: mdi:gauge
+          name: Pressure
+          show_state: true
+          type: custom:bubble-card
+        - button_type: state
+          card_type: button
+          entity: sensor.tbr_weather_battery
+          icon: mdi:battery
+          name: Sensor Battery
+          show_state: true
+          type: custom:bubble-card
+        columns: 2
+        grid_options:
+          columns: 12
+          rows: auto
+        square: false
+        type: grid
+      hash: '#air'
+      icon: mdi:air-filter
+      margin_top: 20px
+      name: Environmental Data
+      styles: ".bubble-pop-up-container {\n  background: rgba(16, 16, 20, 0.98) !important;\n\
+        \  border: 1px solid rgba(255, 255, 255, 0.1);\n  backdrop-filter: blur(20px);\n\
+        }\n"
+      sub_button:
+        bottom: []
+        main: []
+      type: custom:bubble-card
+    - button_type: name
+      card_type: pop-up
+      cards:
+      - button_type: switch
+        card_type: button
+        entity: light.common_bathroom_sink_lx
+        grid_options:
+          columns: 12
+        icon: mdi:lightbulb
+        name: Sink Lights
+        styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+          \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255, 255,\
+          \ 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+          \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n}\
+          \ .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+          \ }\n"
+        type: custom:bubble-card
+      - button_type: switch
+        card_type: button
+        entity: switch.shower_lights
+        grid_options:
+          columns: 12
+        icon: mdi:shower-head
+        name: Shower Lights
+        styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+          \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255, 255,\
+          \ 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+          \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n}\
+          \ .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+          \ }\n"
+        type: custom:bubble-card
+      - button_type: switch
+        card_type: button
+        entity: switch.exhaust_fan
+        grid_options:
+          columns: 12
+        icon: mdi:fan
+        name: Exhaust Fan
+        styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+          \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255, 255,\
+          \ 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+          \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n}\
+          \ .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+          \ }\n"
+        type: custom:bubble-card
+      hash: '#CB'
+      icon: mdi:toilet
+      name: Common Bathroom
+      styles: ".bubble-pop-up-container {\n  background: rgba(16, 16, 20, 0.98) !important;\n\
+        \  border: 1px solid rgba(255, 255, 255, 0.1);\n  backdrop-filter: blur(20px);\n\
+        }\n"
+      sub_button:
+        bottom: []
+        main: []
+      type: custom:bubble-card
+    - cards:
+      - animate: true
+        card_mod:
+          style: "ha-card {\n  background: linear-gradient(180deg, rgba(255,255,255,0.03)\
+            \ 0%, rgba(0,0,0,0) 100%);\n  border: 1px solid rgba(255,255,255,0.08);\n\
+            \  border-radius: 20px;\n}\n"
+        color_thresholds:
+        - color: '#ff0000'
+          value: 0
+        - color: '#fdf100'
+          value: 65
+        - color: '#00e676'
+          value: 199
+        - color: '#ff0000'
+          value: 300
+        entities:
+        - entity: sensor.surgas
+          name: Glucose Level
+        - color: '#444444'
+          entity: input_number.bgl_lower
+          fixed_value: true
+          show_fill: false
+        - color: '#444444'
+          entity: input_number.bgl_upper
+          fixed_value: true
+          show_fill: false
+        font_size: 75
+        hours_to_show: 6
+        line_width: 3
+        points_per_hour: 12
+        show:
+          icon: false
+          legend: false
+          name: true
+          state: true
+        type: custom:mini-graph-card
+      - card_type: separator
+        icon: mdi:palette-swatch
+        name: Moods & Scenes
+        styles: '.bubble-line { background: linear-gradient(90deg, #9b59b6, transparent);
+          opacity: 0.5; } .bubble-icon { color: #9b59b6 !important; }
+
+          '
+        type: custom:bubble-card
+      - cards:
+        - button_type: name
+          card_type: button
+          icon: mdi:white-balance-sunny
+          name: Bright
+          show_icon: false
+          styles: '.bubble-button-background { background: rgba(255,255,255,0.05)
+            !important; border: 1px solid rgba(255,255,255,0.1) !important; } .bubble-name
+            { font-size: 10px !important; }
+
+            '
+          tap_action:
+            action: call-service
+            service: scene.turn_on
+            target:
+              entity_id: scene.window_bw
+          type: custom:bubble-card
+        - button_type: name
+          card_type: button
+          icon: mdi:snowflake
+          name: Cool
+          show_icon: false
+          styles: '.bubble-button-background { background: rgba(255,255,255,0.05)
+            !important; border: 1px solid rgba(255,255,255,0.1) !important; } .bubble-name
+            { font-size: 10px !important; }
+
+            '
+          tap_action:
+            action: call-service
+            service: scene.turn_on
+            target:
+              entity_id: scene.window_bc
+          type: custom:bubble-card
+        - button_type: name
+          card_type: button
+          icon: mdi:fire
+          name: Warm
+          scrolling_effect: true
+          show_icon: false
+          styles: '.bubble-button-background { background: rgba(255,255,255,0.05)
+            !important; border: 1px solid rgba(255,255,255,0.1) !important; } .bubble-name
+            { font-size: 10px !important; }
+
+            '
+          tap_action:
+            action: call-service
+            service: scene.turn_on
+            target:
+              entity_id: scene.window_dw
+          type: custom:bubble-card
+        - button_type: name
+          card_type: button
+          icon: mdi:brightness-3
+          name: Dim
+          show_icon: false
+          styles: '.bubble-button-background { background: rgba(255,255,255,0.05)
+            !important; border: 1px solid rgba(255,255,255,0.1) !important; } .bubble-name
+            { font-size: 10px !important; }
+
+            '
+          tap_action:
+            action: call-service
+            service: scene.turn_on
+            target:
+              entity_id: scene.window_dc
+          type: custom:bubble-card
+        columns: 4
+        square: true
+        type: grid
+      - cards:
+        - card_layout: large
+          card_type: climate
+          entity: climate.ny1_p_aircon_01
+          name: AC 01 - TDVT
+          show_state: true
+          styles: ".bubble-button-background {\n  background: ${state === 'cool' ?\
+            \ 'linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243,\
+            \ 0.05))' : \n  state === 'heat' ? 'linear-gradient(135deg, rgba(255,\
+            \ 87, 34, 0.2), rgba(255, 87, 34, 0.05))' : \n  'rgba(255, 255, 255, 0.03)'}\
+            \ !important;\n  border: 1px solid rgba(255,255,255,0.05) !important;\n\
+            } .bubble-icon { color: ${state === 'cool' ? '#64b5f6' : state === 'heat'\
+            \ ? '#ff8a65' : '#ffffff'} !important; }\n"
+          type: custom:bubble-card
+        - card_layout: large
+          card_type: climate
+          entity: climate.ny1_p_aircon_02
+          name: AC 02 - MBR
+          show_state: true
+          styles: ".bubble-button-background {\n  background: ${state === 'cool' ?\
+            \ 'linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243,\
+            \ 0.05))' : \n  state === 'heat' ? 'linear-gradient(135deg, rgba(255,\
+            \ 87, 34, 0.2), rgba(255, 87, 34, 0.05))' : \n  'rgba(255, 255, 255, 0.03)'}\
+            \ !important;\n  border: 1px solid rgba(255,255,255,0.05) !important;\n\
+            } .bubble-icon { color: ${state === 'cool' ? '#64b5f6' : state === 'heat'\
+            \ ? '#ff8a65' : '#ffffff'} !important; }\n"
+          type: custom:bubble-card
+        - card_layout: large
+          card_type: climate
+          entity: climate.ny1_p_aircon_03
+          name: AC 03 - LR
+          show_state: true
+          styles: ".bubble-button-background {\n  background: ${state === 'cool' ?\
+            \ 'linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243,\
+            \ 0.05))' : \n  state === 'heat' ? 'linear-gradient(135deg, rgba(255,\
+            \ 87, 34, 0.2), rgba(255, 87, 34, 0.05))' : \n  'rgba(255, 255, 255, 0.03)'}\
+            \ !important;\n  border: 1px solid rgba(255,255,255,0.05) !important;\n\
+            } .bubble-icon { color: ${state === 'cool' ? '#64b5f6' : state === 'heat'\
+            \ ? '#ff8a65' : '#ffffff'} !important; }\n"
+          type: custom:bubble-card
+        - card_layout: large
+          card_type: climate
+          entity: climate.ny1_p_aircon_04
+          name: AC 04 - Clark
+          show_state: true
+          styles: ".bubble-button-background {\n  background: ${state === 'cool' ?\
+            \ 'linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243,\
+            \ 0.05))' : \n  state === 'heat' ? 'linear-gradient(135deg, rgba(255,\
+            \ 87, 34, 0.2), rgba(255, 87, 34, 0.05))' : \n  'rgba(255, 255, 255, 0.03)'}\
+            \ !important;\n  border: 1px solid rgba(255,255,255,0.05) !important;\n\
+            } .bubble-icon { color: ${state === 'cool' ? '#64b5f6' : state === 'heat'\
+            \ ? '#ff8a65' : '#ffffff'} !important; }\n"
+          type: custom:bubble-card
+        parameters:
+          centeredSlides: true
+          coverflowEffect:
+            depth: 100
+            modifier: 1
+            rotate: 0
+            slideShadows: false
+            stretch: 0
+          effect: coverflow
+          grabCursor: true
+          slidesPerView: auto
+          spaceBetween: 10
+        type: custom:swipe-card
+      - card_type: separator
+        icon: mdi:home-lightbulb
+        name: Rooms & Lighting
+        styles: '.bubble-line { background: linear-gradient(90deg, #ffb300, transparent);
+          opacity: 0.5; } .bubble-icon { color: #ffb300 !important; }
+
+          '
+        type: custom:bubble-card
+      - button_type: switch
+        card_layout: large
+        card_type: button
+        entity: light.ny1_p_wled_01
+        icon: mdi:led-strip-variant
+        name: Window WLED
+        styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+          \ rgba(138, 43, 226, 0.3), rgba(138, 43, 226, 0.1))' : 'rgba(255, 255, 255,\
+          \ 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(138,\
+          \ 43, 226, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n\
+          } .bubble-icon { color: ${state === 'on' ? '#d094ea' : '#ffffff'} !important;\
+          \ }\n"
+        sub_button:
+        - entity: light.ny1_lx
+          icon: mdi:window-closed
+          show_background: true
+          tap_action:
+            action: toggle
+        - entity: light.kaufb_06
+          icon: mdi:sofa
+          show_background: true
+          tap_action:
+            action: toggle
+        type: custom:bubble-card
+      - button_type: switch
+        card_layout: large
+        card_type: button
+        entity: light.tbr_lights
+        icon: mdi:bed-king
+        name: Master Bedroom
+        styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+          \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255, 255,\
+          \ 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+          \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n}\
+          \ .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+          \ }\n"
+        sub_button:
+        - entity: light.rgbw2_01
+          icon: mdi:bed
+          show_background: true
+          tap_action:
+            action: toggle
+        - entity: light.kaufb_01
+          icon: mdi:ceiling-light
+          show_background: true
+          tap_action:
+            action: toggle
+        - entity: fan.tbr_c300s
+          icon: mdi:air-purifier
+          show_background: true
+          tap_action:
+            action: toggle
+        type: custom:bubble-card
+      - cards:
+        - button_type: switch
+          card_type: button
+          entity: light.ny1_p_s1m_03_loft_lights
+          icon: mdi:home-roof
+          name: Loft
+          styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+            \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255,\
+            \ 255, 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+            \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n\
+            } .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+            \ }\n"
+          type: custom:bubble-card
+        - button_type: name
+          card_type: button
+          entity: light.common_bathroom_sink_lx
+          icon: mdi:toilet
+          name: Bathroom
+          styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+            \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255,\
+            \ 255, 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+            \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n\
+            } .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+            \ }\n"
+          tap_action:
+            action: navigate
+            navigation_path: '#CB'
+          type: custom:bubble-card
+        columns: 2
+        square: false
+        type: grid
+      - card_type: separator
+        icon: mdi:speaker-wireless
+        name: Media & System
+        styles: '.bubble-line { background: linear-gradient(90deg, #1db954, transparent);
+          opacity: 0.5; } .bubble-icon { color: #1db954 !important; }
+
+          '
+        type: custom:bubble-card
+      - card_layout: large
+        card_type: media-player
+        entity: media_player.spotify_tristan_van_tine
+        name: Spotify
+        show_icon: true
+        styles: ".bubble-button-background {\n  background: rgba(29, 185, 84, 0.1)\
+          \ !important;\n  border: 1px solid rgba(29, 185, 84, 0.3) !important;\n\
+          }\n"
+        type: custom:bubble-card
+      - cards:
+        - button_type: switch
+          card_type: button
+          entity: input_boolean.guest_mode
+          icon: mdi:account-group
+          name: Guest Mode
+          styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'rgba(231,\
+            \ 76, 60, 0.3)' : 'rgba(255, 255, 255, 0.03)'} !important;\n  border:\
+            \ ${state === 'on' ? '1px solid rgba(231, 76, 60, 0.5)' : '1px solid rgba(255,\
+            \ 255, 255, 0.05)'} !important;\n} .bubble-icon { color: ${state === 'on'\
+            \ ? '#e74c3c' : '#ffffff'} !important; }\n"
+          type: custom:bubble-card
+        - button_type: switch
+          card_type: button
+          entity: binary_sensor.guest_home_binary
+          icon: mdi:home-account
+          name: Guest Home
+          show_state: true
+          styles: ".bubble-button-background {\n  background: ${state === 'on' ? 'linear-gradient(135deg,\
+            \ rgba(255, 179, 0, 0.2), rgba(255, 179, 0, 0.05))' : 'rgba(255, 255,\
+            \ 255, 0.03)'} !important;\n  border: ${state === 'on' ? '1px solid rgba(255,\
+            \ 179, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.05)'} !important;\n\
+            } .bubble-icon { color: ${state === 'on' ? '#ffb300' : '#ffffff'} !important;\
+            \ }\n"
+          type: custom:bubble-card
+        type: horizontal-stack
+      type: vertical-stack
+    path: home
+    title: Home
+    type: masonry

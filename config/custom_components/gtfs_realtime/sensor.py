@@ -1,0 +1,248 @@
+"""Platform for sensor integration."""
+
+from __future__ import annotations
+
+import logging
+import typing
+
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+from gtfs_station_stop.arrival import Arrival
+from gtfs_station_stop.route_info import RouteType
+from gtfs_station_stop.station_stop import StationStop
+from gtfs_station_stop.station_stop_info import StationStopInfo
+from homeassistant.components.sensor import (
+    PLATFORM_SCHEMA as SENSOR_PLATFORM_SCHEMA,
+)
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE, UnitOfTime
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from custom_components.gtfs_realtime import GtfsRealtimeConfigEntry
+
+from .const import (
+    CONF_ARRIVAL_LIMIT,
+    CONF_STOP_IDS,
+    DESTINATION,
+    DOMAIN,
+    HEADSIGN,
+    LOCATION_SOURCE,
+    ROUTE_COLOR,
+    ROUTE_ID,
+    ROUTE_TEXT_COLOR,
+    ROUTE_TYPE,
+    STOP_ID,
+    TRIP_ID,
+    LocationSource,
+)
+from .coordinator import GtfsRealtimeCoordinator
+
+PLATFORM_SCHEMA = SENSOR_PLATFORM_SCHEMA.extend(
+    {vol.Required(STOP_ID): cv.string, vol.Optional(CONF_ARRIVAL_LIMIT, default=4): int}
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+MIN_NEGATIVE_ARRIVAL_TIME_SECONDS = -120  # 2 minutes
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: GtfsRealtimeConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the sensor platform."""
+    coordinator: GtfsRealtimeCoordinator = entry.runtime_data
+    if CONF_STOP_IDS in entry.data:
+        arrival_limit: int = round(entry.data[CONF_ARRIVAL_LIMIT])
+        arrival_sensors = []
+        for i in range(arrival_limit):
+            for stop_id in entry.data[CONF_STOP_IDS]:
+                arrival_sensors.append(
+                    ArrivalSensor(
+                        coordinator=coordinator,
+                        stop_id=stop_id,
+                        idx=i,
+                    )
+                )
+        async_add_entities(arrival_sensors, update_before_add=True)
+
+
+class ArrivalSensor(SensorEntity, CoordinatorEntity):
+    """Representation of a Station GTFS Realtime Arrival Sensor."""
+
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_suggested_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_picture: str | None = None
+    _attr_has_entity_name = True
+
+    ICON_DICT: typing.ClassVar = {
+        RouteType.TRAM: "mdi:tram",
+        RouteType.SUBWAY: "mdi:subway-variant",
+        RouteType.RAIL: "mdi:train",
+        RouteType.FERRY: "mdi:ferry",
+    }
+
+    def __init__(
+        self, coordinator: GtfsRealtimeCoordinator, stop_id: str, idx: int
+    ) -> None:
+        """Initialize the sensor."""
+        # Required
+        super().__init__(coordinator=coordinator)  # ty:ignore[invalid-argument-type]
+        self.station_stop = coordinator.gtfs_update_data.station_stops.setdefault(
+            stop_id, StationStop(stop_id, coordinator.hub)
+        )
+        self._idx = idx
+        self.coordinator: GtfsRealtimeCoordinator = coordinator
+        self.route_type = RouteType.UNKNOWN
+
+        self._name = f"Arrival {self._idx + 1}"
+        self._attr_unique_id = f"arrival_{self.station_stop.id}_{self._idx}"
+        self._attr_suggested_display_precision = 0
+        self._attr_suggested_unit_of_measurement = UnitOfTime.MINUTES
+        self._arrival_detail: dict[str, str | float | None] = {}
+
+    def _get_stop_info(self) -> StationStopInfo | None:
+        return self.coordinator.gtfs_update_data.schedule.get_stop_info(
+            self.station_stop.id
+        )
+
+    def _get_stop_ref(self) -> str:
+        station_stop_info = self._get_stop_info()
+        if station_stop_info is not None:
+            return station_stop_info.name or self.station_stop.id
+        return self.station_stop.id
+
+    @property
+    def name(self) -> str:
+        """Name of the station from static data or else the Stop ID."""
+        return self._name
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | float | None]:
+        """Explanation of Alerts for a given Stop ID."""
+        return self._arrival_detail
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Provide the entity picture from a URL."""
+        return (
+            str(self.coordinator.route_icons).format(
+                self._arrival_detail[ROUTE_ID],
+                self._arrival_detail.get(ROUTE_COLOR, "%230039A6"),
+                self._arrival_detail.get(ROUTE_TEXT_COLOR, "%23FFFFFF"),
+            )
+            if self.coordinator.route_icons
+            and self._arrival_detail.get(ROUTE_ID) is not None
+            else None
+        )
+
+    @property
+    def icon(self) -> str:
+        """Provide the icon."""
+        return self.__class__.ICON_DICT.get(self.route_type, "mdi:bus-clock")
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.station_stop.id)},
+            name=f"{self._get_stop_ref()} ({self.station_stop.id})",
+            manufacturer=self.coordinator.gtfs_provider,
+            model=self.station_stop.id,
+        )
+
+    def update(self) -> None:
+        """Update state from coordinator data."""
+        stop_times_ds = self.coordinator.gtfs_update_data.schedule.stop_times_ds
+        time_to_arrivals: list[tuple[float | None, Arrival]] = []
+        for arrival in self.station_stop.get_time_to_arrivals(
+            stop_times_dataset=stop_times_ds
+        ):
+            # Use the same countdown for filtering, ordering, and display.
+            value = arrival.time if arrival.time is not None else arrival.departure_time
+            if value is None or value > MIN_NEGATIVE_ARRIVAL_TIME_SECONDS:
+                time_to_arrivals.append((value, arrival))
+        # Keep predictions without a timestamp after all timed predictions.
+        time_to_arrivals.sort(
+            key=lambda item: item[0] if item[0] is not None else float("inf")
+        )
+        self._arrival_detail = {}
+        if len(time_to_arrivals) > self._idx:
+            schedule = self.coordinator.gtfs_update_data.schedule
+
+            value, time_to_arrival = time_to_arrivals[self._idx]
+
+            # Do not allow negative numbers
+            self._attr_native_value = max(value, 0) if value is not None else None
+
+            # It's possible the route ID is empty, in that case, get it from the trips database
+            # The remaining attributes will be filled below
+            if time_to_arrival.route not in schedule.route_info_ds.route_infos and bool(
+                time_to_arrival.trip
+            ):
+                trip_info = schedule.trip_info_ds.get_close_match(time_to_arrival.trip)
+                if trip_info is not None:
+                    time_to_arrival.route = trip_info.route_id
+
+            self._arrival_detail[ROUTE_ID] = time_to_arrival.route
+
+            self._arrival_detail[HEADSIGN] = schedule.get_trip_headsign(
+                time_to_arrival.trip
+            )
+            destination = time_to_arrival.destination
+            if destination_stop_info := schedule.station_stop_info_ds.get(destination):
+                destination = destination_stop_info.name
+            else:
+                destination = f"Stop ID: {destination}"
+            self._arrival_detail[DESTINATION] = destination
+            self._arrival_detail[TRIP_ID] = time_to_arrival.trip
+            self._arrival_detail[ROUTE_COLOR] = schedule.get_route_color(
+                time_to_arrival.route
+            )
+            self._arrival_detail[ROUTE_TEXT_COLOR] = schedule.get_route_text_color(
+                time_to_arrival.route
+            )
+            self._arrival_detail[ROUTE_TYPE] = schedule.get_route_type(
+                time_to_arrival.route
+            )
+
+            if vehicle := time_to_arrival.vehicle:
+                self._arrival_detail[ATTR_LATITUDE] = vehicle.latitude
+                self._arrival_detail[ATTR_LONGITUDE] = vehicle.longitude
+                self._arrival_detail[LOCATION_SOURCE] = (
+                    LocationSource.VEHICLE_POSITION_MESSAGE
+                )
+            elif stop_info := schedule.station_stop_info_ds.get(
+                time_to_arrival.current_station
+            ):
+                self._arrival_detail[ATTR_LATITUDE] = stop_info.lat
+                self._arrival_detail[ATTR_LONGITUDE] = stop_info.lon
+                self._arrival_detail[LOCATION_SOURCE] = (
+                    LocationSource.NEAREST_STATION_ESTIMATE
+                )
+        else:
+            self._attr_native_value = None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordainator."""
+        try:
+            self.update()
+            super()._handle_coordinator_update()
+        except:
+            _LOGGER.error(
+                "Exception occurred updating %s provided by %s",
+                self.name,
+                self.coordinator.gtfs_provider,
+            )
+            raise

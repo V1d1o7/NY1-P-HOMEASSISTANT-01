@@ -1,0 +1,72 @@
+config:
+  views:
+  - cards: []
+    icon: mdi:electric-switch
+    max_columns: 4
+    sections:
+    - cards:
+      - cards:
+        - card_type: separator
+          name: 'TBR:'
+          type: custom:bubble-card
+        - attribute: friendly_name
+          button_action: {}
+          button_type: switch
+          card_type: button
+          entity: switch.ny1_p_workbench_01_power
+          name: NY1-P-WORKBENCH-01
+          show_attribute: true
+          show_state: true
+          type: custom:bubble-card
+        - attribute: friendly_name
+          button_action: {}
+          button_type: switch
+          card_type: button
+          entity: light.closet_light
+          name: NY1-P-CLOSET-01
+          show_attribute: true
+          show_state: true
+          type: custom:bubble-card
+        - card_type: separator
+          name: Bathroom
+          type: custom:bubble-card
+        - attribute: friendly_name
+          button_action: {}
+          button_type: switch
+          card_type: button
+          entity: switch.exhaust_fan
+          name: NY1-2Pm-01
+          show_attribute: true
+          show_state: true
+          type: custom:bubble-card
+        - attribute: friendly_name
+          button_action: {}
+          button_type: switch
+          card_type: button
+          entity: switch.shower_lights
+          name: NY1-2Pm-01
+          show_attribute: true
+          show_state: true
+          type: custom:bubble-card
+        - attribute: friendly_name
+          button_action: {}
+          button_type: switch
+          card_type: button
+          entity: switch.ny1_p_s1m_02_sink_lights
+          name: NY1-P-S1m-02
+          show_attribute: true
+          show_state: true
+          type: custom:bubble-card
+        - attribute: friendly_name
+          button_action: {}
+          button_type: switch
+          card_type: button
+          entity: switch.heater_power
+          name: NY1-P-HEATER-01
+          show_attribute: true
+          show_state: true
+          type: custom:bubble-card
+        type: vertical-stack
+      type: grid
+    title: Switches/Relays
+    type: sections

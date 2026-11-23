@@ -6,6 +6,9 @@ esphome:
     board_build.partitions: default_16MB.csv
     board_build.arduino.memory_type: qio_opi
 
+packages:
+  diagnostics: !include Base_Confs/diagnostics.yaml
+
 external_components:
   - source: github://landonr/lilygo-tdisplays3-esphome
     components: [tdisplays3]

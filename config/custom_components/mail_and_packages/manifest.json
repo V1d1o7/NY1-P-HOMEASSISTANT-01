@@ -1,20 +1,24 @@
 {
   "domain": "mail_and_packages",
   "name": "Mail and Packages",
+  "after_dependencies": ["cloud"],
+  "categories": [
+    "productivity_information.shopping_groceries"
+  ],
   "codeowners": [
     "@moralmunky",
     "@firstof9"
   ],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["application_credentials", "http"],
   "documentation": "https://github.com/moralmunky/Home-Assistant-Mail-And-Packages",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/moralmunky/Home-Assistant-Mail-And-Packages/issues",
   "requirements": [
     "beautifulsoup4",
-    "Pillow>=9.0",
-    "dateparser"
+    "dateparser",
+    "aioimaplib"
   ],
-  "version": "0.4.1"
+  "version": "0.6.10"
 }

@@ -1,0 +1,31 @@
+substitutions:
+  device_name: ny1-p-heater-01
+  frontend_name: NY1-P-HEATER-01
+  max_power: "800"
+  max_temp: "70"
+  # Safety: heater shuts itself off after running this long continuously
+  max_runtime: 4h
+
+packages:
+  device_base: !include Base_Confs/Shelly_1PM_mini_base_switch.yaml
+
+switch:
+  - id: !extend relay
+    # never come back on by itself after a power blip / reboot
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - script.execute: heater_max_runtime
+    on_turn_off:
+      - script.stop: heater_max_runtime
+
+script:
+  - id: heater_max_runtime
+    mode: restart
+    then:
+      - delay: ${max_runtime}
+      - switch.turn_off: relay
+      - homeassistant.service:
+          service: persistent_notification.create
+          data:
+            title: Message from ${frontend_name}
+            message: Heater turned off after running for ${max_runtime}

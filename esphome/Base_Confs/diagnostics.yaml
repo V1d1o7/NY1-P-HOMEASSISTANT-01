@@ -1,0 +1,47 @@
+####################################################
+#                                                  #
+#        Shared diagnostic entities                #
+#                                                  #
+####################################################
+# Include from a device file:
+#   packages:
+#     diagnostics: !include Base_Confs/diagnostics.yaml
+# Include from another Base_Confs file:
+#   packages:
+#     diagnostics: !include diagnostics.yaml
+#
+# Names are short on purpose: the device needs `friendly_name` set so
+# Home Assistant shows them as "<Device> Uptime", "<Device> Restart", etc.
+# Every item has an id, so a device can tweak one with `id: !extend diag_...`
+
+sensor:
+  - platform: uptime
+    id: diag_uptime
+    name: Uptime
+    entity_category: diagnostic
+    update_interval: 300s
+
+  - platform: wifi_signal
+    id: diag_wifi_signal
+    name: WiFi Signal
+    entity_category: diagnostic
+    update_interval: 120s
+
+text_sensor:
+  - platform: version
+    id: diag_version
+    name: ESPHome Version
+    hide_timestamp: true
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    id: diag_restart
+    name: Restart
+    entity_category: diagnostic
+
+  # Reboots into safe mode (OTA only) - handy if a bad config bootloops
+  - platform: safe_mode
+    id: diag_safe_mode
+    name: Safe Mode Boot
+    entity_category: diagnostic

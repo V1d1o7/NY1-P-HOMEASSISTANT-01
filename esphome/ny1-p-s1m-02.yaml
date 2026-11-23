@@ -1,6 +1,8 @@
 substitutions:
   device_name: "NY1-P-S1m-02"
   hass_entity_single_press_toggle: "light.common_bathroom_sink_lx"
+  # HA toggle: ON = wall switch acts as a normal switch, OFF = smart remap
+  default_switches_entity: "input_boolean.common_bathroom_default_switches"
 
 esphome:
   name: ny1-p-s1m-02
@@ -9,6 +11,8 @@ esphome:
   platformio_options:
     board_build.flash_mode: dio
 
+packages:
+  diagnostics: !include Base_Confs/diagnostics.yaml
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -20,7 +24,7 @@ wifi:
   password: !secret wifi_password
 
   ap:
-    ssid: " $device_name Fallback Hotspot"
+    ssid: "$device_name Fallback Hotspot"
     password: !secret fallback_password
 
 logger:
@@ -49,20 +53,48 @@ output:
 switch:
   - platform: output
     id: "relay"
-    name: "Shelly Relay"
+    name: "Sink Lights"
     output: "relay_output"
     restore_mode: ALWAYS_ON
 
 binary_sensor:
+  # Mirrors the HA "default switches" toggle (ON = dumb mode).
+  # Keeps its last known state if HA drops; starts OFF (smart) on boot.
+  - platform: homeassistant
+    id: default_switches
+    entity_id: $default_switches_entity
+    internal: true
+    # leaving dumb mode: make sure the smart bulbs have power again
+    on_release:
+      then:
+        - switch.turn_on: "relay"
+
   - platform: gpio
     name: "Wall Switch"
     pin: 10
     on_state:
       then:
-        homeassistant.service:
-            service: homeassistant.toggle
-            data:
-              entity_id: $hass_entity_single_press_toggle
+        - if:
+            condition:
+              binary_sensor.is_on: default_switches
+            # dumb mode: wall switch cuts/restores power to the sink bulbs
+            then:
+              - switch.toggle: "relay"
+            else:
+              - if:
+                  condition:
+                    and:
+                      - wifi.connected:
+                      - api.connected:
+                  # smart mode: toggle smart light via HA
+                  then:
+                    - homeassistant.service:
+                        service: homeassistant.toggle
+                        data:
+                          entity_id: $hass_entity_single_press_toggle
+                  # HA unreachable: fall back to the relay
+                  else:
+                    - switch.toggle: "relay"
     filters:
       - delayed_on_off: 50ms
 

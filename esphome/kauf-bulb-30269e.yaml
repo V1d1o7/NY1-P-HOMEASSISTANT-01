@@ -1,0 +1,19 @@
+substitutions:
+  name: kauf-bulb-30269e
+  friendly_name: NY1-P-KAUFB-06
+
+packages:
+  Kauf.RGBWW: "github://KaufHA/kauf-rgbww-bulbs/config/kauf-bulb-4m.yaml"
+
+esphome:
+  name: ${name}
+  name_add_mac_suffix: false
+  friendly_name: ${friendly_name}
+
+api:
+  encryption:
+    key: "U+wXF+cHw/FIYDkSawGQJnFruSm4BxoC9y6YYsLrQZE="
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password

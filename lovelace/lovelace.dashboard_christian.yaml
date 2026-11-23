@@ -1,0 +1,279 @@
+config:
+  kiosk_mode:
+    mobile_settings:
+      hide_header: true
+      hide_sidebar: true
+  views:
+  - cards:
+    - button_type: name
+      card_type: pop-up
+      cards:
+      - camera_image: camera.ny1_mail_usps_camera
+        camera_view: live
+        entities: []
+        grid_options:
+          columns: 12
+          rows: auto
+        style: "ha-card {\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.1);\n\
+          }\n"
+        type: picture-glance
+      hash: '#mail-cam'
+      icon: mdi:mailbox
+      margin_top: 20px
+      name: Todays Mail
+      styles: ".bubble-pop-up-container {\n  background: rgba(15, 15, 20, 0.95) !important;\n\
+        \  border: 1px solid rgba(100, 200, 255, 0.3);\n  backdrop-filter: blur(15px);\n\
+        }\n"
+      sub_button:
+        bottom: []
+        main: []
+      type: custom:bubble-card
+      width_desktop: 600px
+    - cards:
+      - alignment: start
+        card_mod:
+          style: "ha-card {\n  margin-bottom: 0px;\n}\n"
+        chips:
+        - content_info: none
+          double_tap_action:
+            action: none
+          entity: person.tristan
+          hold_action:
+            action: none
+          icon_color: deep-orange
+          tap_action:
+            action: none
+          type: entity
+          use_entity_picture: true
+        - content_info: none
+          double_tap_action:
+            action: none
+          entity: person.clark_yang
+          hold_action:
+            action: none
+          icon_color: teal
+          tap_action:
+            action: none
+          type: entity
+          use_entity_picture: true
+        - entity: weather.pw_bk
+          show_conditions: true
+          show_temperature: true
+          type: weather
+        type: custom:mushroom-chips-card
+      - card_mod:
+          style: "ha-card {\n  background: none;\n  margin-top: -10px;\n  margin-bottom:\
+            \ -10px;\n  --title-font-size: 50px;\n  --title-font-weight: 200;\n  --subtitle-font-size:\
+            \ 16px;\n  text-align: left;\n}\n"
+        subtitle: '{{ now().strftime("%A, %B %d") }}'
+        title: '{{ now().strftime("%H:%M") }}'
+        type: custom:mushroom-title-card
+      - cards:
+        - card_mod:
+            style: "ha-card {\n  border-radius: 24px;\n  background: linear-gradient(135deg,\
+              \ rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);\n \
+              \ border: 1px solid rgba(255, 107, 107, 0.3);\n  box-shadow: 0 8px 32px\
+              \ 0 rgba(0, 0, 0, 0.37);\n  backdrop-filter: blur( 4px );\n}\n"
+          entities:
+          - sensor.mbr_enviro_temperaturef
+          font_size: 60
+          height: 60
+          line_color: '#ff6b6b'
+          line_width: 4
+          name: Temperature
+          show:
+            fill: true
+            graph: line
+            icon: true
+            labels: true
+          type: custom:mini-graph-card
+        - card_mod:
+            style: "ha-card {\n  border-radius: 24px;\n  background: linear-gradient(135deg,\
+              \ rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);\n \
+              \ border: 1px solid rgba(77, 171, 247, 0.3);\n  box-shadow: 0 8px 32px\
+              \ 0 rgba(0, 0, 0, 0.37);\n  backdrop-filter: blur( 4px );\n}\n"
+          entities:
+          - sensor.mbr_enviro_humidity
+          font_size: 60
+          height: 60
+          line_color: '#4dabf7'
+          line_width: 4
+          name: Humidity
+          show:
+            fill: true
+            graph: line
+            icon: true
+            labels: true
+          type: custom:mini-graph-card
+        parameters:
+          centeredSlides: true
+          coverflowEffect:
+            depth: 100
+            modifier: 1
+            rotate: 50
+            slideShadows: true
+            stretch: 0
+          effect: coverflow
+          grabCursor: true
+          slidesPerView: auto
+          spaceBetween: 8
+        type: custom:swipe-card
+      - card_type: separator
+        icon: mdi:bed
+        name: Bedroom
+        styles: '.bubble-line { background: linear-gradient(90deg, #ff9f43, transparent);
+          opacity: 0.5; } .bubble-icon { color: #ff9f43 !important; }
+
+          '
+        type: custom:bubble-card
+      - button_type: switch
+        card_layout: large
+        card_type: button
+        entity: light.mbr_lx
+        icon: mdi:ceiling-light
+        name: Main Lights
+        rows: 1
+        show_state: true
+        styles: ".bubble-button-background {\n  background: ${hass.states['light.mbr_lx'].state\
+          \ === 'on' ? \n  'linear-gradient(135deg, rgba(255, 159, 67, 0.3) 0%, rgba(255,\
+          \ 159, 67, 0.1) 100%)' : \n  'rgba(30, 30, 35, 0.6)'} !important;\n  border:\
+          \ ${hass.states['light.mbr_lx'].state === 'on' ? \n  '1px solid rgba(255,\
+          \ 159, 67, 0.6)' : \n  '1px solid rgba(255, 255, 255, 0.05)'} !important;\n\
+          \  transition: all 0.3s ease-in-out;\n} .bubble-icon {\n  color: ${hass.states['light.mbr_lx'].state\
+          \ === 'on' ? '#ff9f43' : 'rgba(255,255,255,0.7)'} !important;\n} .bubble-name\
+          \ {\n  font-weight: 700 !important;\n  color: ${hass.states['light.mbr_lx'].state\
+          \ === 'on' ? '#ffffff' : 'rgba(255,255,255,0.6)'} !important;\n}\n"
+        sub_button:
+          bottom: []
+          main:
+          - entity: light.mbr_closet_lx
+            icon: mdi:hanger
+            show_background: true
+            tap_action:
+              action: toggle
+          - entity: light.mbr_lx
+            icon: mdi:lightbulb
+            show_background: true
+            tap_action:
+              action: toggle
+        type: custom:bubble-card
+      - card_type: separator
+        icon: mdi:shower
+        name: Bathroom
+        styles: '.bubble-line { background: linear-gradient(90deg, #0abde3, transparent);
+          opacity: 0.5; } .bubble-icon { color: #0abde3 !important; }
+
+          '
+        type: custom:bubble-card
+      - button_action: {}
+        button_type: switch
+        card_layout: large
+        card_type: button
+        entity: light.mbr_bathroom_overhead_lights
+        icon: mdi:water-pump
+        name: Overhead & Sink
+        show_state: true
+        styles: ".bubble-button-background {\n  background: ${hass.states['light.mbr_bathroom_overhead_lights'].state\
+          \ === 'on' ? \n  'linear-gradient(135deg, rgba(10, 189, 227, 0.3) 0%, rgba(10,\
+          \ 189, 227, 0.1) 100%)' : \n  'rgba(30, 30, 35, 0.6)'} !important;\n  border:\
+          \ ${hass.states['light.mbr_bathroom_overhead_lights'].state === 'on' ? \n\
+          \  '1px solid rgba(10, 189, 227, 0.6)' : \n  '1px solid rgba(255, 255, 255,\
+          \ 0.05)'} !important;\n} .bubble-icon {\n  color: ${hass.states['light.mbr_bathroom_overhead_lights'].state\
+          \ === 'on' ? '#0abde3' : 'rgba(255,255,255,0.7)'} !important;\n}\n"
+        sub_button:
+          bottom: []
+          main:
+          - entity: light.mbr_sink_lights_sink_lights
+            icon: mdi:lightbulb-outline
+            show_background: true
+            tap_action:
+              action: toggle
+          - entity: switch.mbr_bathroom_fan
+            icon: mdi:fan
+            show_background: true
+            styles: ".bubble-sub-button-icon {\n  animation: ${hass.states['switch.mbr_bathroom_fan'].state\
+              \ === 'on' ? 'spin 1s linear infinite' : 'none'};\n} @keyframes spin\
+              \ { 100% { transform: rotate(360deg); } }\n"
+            tap_action:
+              action: toggle
+        type: custom:bubble-card
+      - card_type: separator
+        icon: mdi:home-lightning-bolt-outline
+        name: Services
+        styles: '.bubble-line { background: linear-gradient(90deg, #5f27cd, transparent);
+          opacity: 0.5; } .bubble-icon { color: #5f27cd !important; }
+
+          '
+        type: custom:bubble-card
+      - cards:
+        - button_type: name
+          card_type: button
+          entity: sensor.trash
+          name: Trash
+          show_state: false
+          styles: ".bubble-button-background {\n  background: ${hass.states['sensor.trash'].state\
+            \ == 0 ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.4), rgba(76, 175,\
+            \ 80, 0.1))' :\n  hass.states['sensor.trash'].state == 1 ? 'linear-gradient(135deg,\
+            \ rgba(255, 152, 0, 0.4), rgba(255, 152, 0, 0.1))' : \n  hass.states['sensor.trash'].state\
+            \ == 2 ? 'rgba(30, 30, 35, 0.6)' : 'transparent'}\n  !important;\n  border:\
+            \ ${hass.states['sensor.trash'].state == 0 ? '1px solid rgba(76, 175,\
+            \ 80, 0.5)' : \n  hass.states['sensor.trash'].state == 1 ? '1px solid\
+            \ rgba(255, 152, 0, 0.5)' : \n  '1px solid rgba(255, 255, 255, 0.05)'}\
+            \ !important;\n} .bubble-icon {\n  color: ${hass.states['sensor.trash'].state\
+            \ == 0 ? '#81c784' :\n  hass.states['sensor.trash'].state == 1 ? '#ffb74d'\
+            \ : \n  hass.states['sensor.trash'].state == 2 ? '#9e9e9e' : 'transparent'}\n\
+            \  !important;\n} ${icon.setAttribute(\"icon\", hass.states['sensor.trash'].state\
+            \ === '1' ? 'mdi:delete-empty' : \n  hass.states['sensor.trash'].state\
+            \ === '2' ? 'mdi:trash-can' : \n  hass.states['sensor.trash'].state ===\
+            \ '0' ? 'mdi:delete-restore' : 'mdi:alert-circle')}\n"
+          type: custom:bubble-card
+        - button_type: name
+          card_type: button
+          entity: sensor.recycling
+          name: Recycling
+          styles: ".bubble-button-background {\n  background: ${hass.states['sensor.recycling'].state\
+            \ == 0 ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.4), rgba(76, 175,\
+            \ 80, 0.1))' :\n  hass.states['sensor.recycling'].state == 1 ? 'linear-gradient(135deg,\
+            \ rgba(255, 152, 0, 0.4), rgba(255, 152, 0, 0.1))' : \n  hass.states['sensor.recycling'].state\
+            \ == 2 ? 'rgba(30, 30, 35, 0.6)' : 'transparent'}\n  !important;\n  border:\
+            \ ${hass.states['sensor.recycling'].state == 0 ? '1px solid rgba(76, 175,\
+            \ 80, 0.5)' : \n  hass.states['sensor.recycling'].state == 1 ? '1px solid\
+            \ rgba(255, 152, 0, 0.5)' : \n  '1px solid rgba(255, 255, 255, 0.05)'}\
+            \ !important;\n} .bubble-icon {\n  color: ${hass.states['sensor.recycling'].state\
+            \ == 0 ? '#81c784' :\n  hass.states['sensor.recycling'].state == 1 ? '#ffb74d'\
+            \ : \n  hass.states['sensor.recycling'].state == 2 ? '#9e9e9e' : 'transparent'}\n\
+            \  !important;\n} ${icon.setAttribute(\"icon\", hass.states['sensor.recycling'].state\
+            \ === '1' ? 'mdi:delete-empty' : \n  hass.states['sensor.recycling'].state\
+            \ === '2' ? 'mdi:trash-can' : \n  hass.states['sensor.recycling'].state\
+            \ === '0' ? 'mdi:delete-restore' : 'mdi:alert-circle')}\n"
+          type: custom:bubble-card
+        columns: 2
+        square: false
+        type: grid
+      - button_action:
+          tap_action:
+            action: navigate
+            navigation_path: '#mail-cam'
+        button_type: state
+        card_type: button
+        entity: camera.mail_usps_camera
+        force_icon: false
+        icon: mdi:card-account-mail-outline
+        name: Mailbox
+        show_icon: true
+        show_name: true
+        show_state: false
+        styles: ".bubble-button-background {\n  background: rgba(30, 30, 35, 0.6)\
+          \ !important;\n  border: 1px solid rgba(255, 255, 255, 0.05) !important;\n\
+          } .bubble-icon {\n  color: #ff6b6b !important;\n}\n"
+        sub_button:
+          bottom: []
+          main: []
+        tap_action:
+          action: navigate
+          navigation_path: '#mail-cam'
+        type: custom:bubble-card
+      type: vertical-stack
+    path: master-bedroom
+    title: Christian
+    type: masonry

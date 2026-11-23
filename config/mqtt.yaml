@@ -7,5 +7,5 @@
 
 sensor:
   - name: "Guest"
-    state_topic: "espresense/devices/iBeacon:426c7565-4368-6172-6d42-6561636f6e73-3838-4949"
+    state_topic: "espresense/devices/iBeacon:426c7565-4368-6172-6d42-6561636f6e73-3838-1341"
     unique_id: "guest_keys_tracker"

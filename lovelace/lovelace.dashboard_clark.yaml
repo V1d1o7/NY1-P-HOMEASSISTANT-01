@@ -1,0 +1,587 @@
+config:
+  views:
+  - cards: []
+    sections:
+    - cards:
+      - cards:
+        - attribute: brightness
+          button_action:
+            double_tap_action:
+              action: none
+            hold_action:
+              action: none
+            tap_action:
+              action: navigate
+              navigation_path: '#ny1lx'
+              service: scene.turn_on
+              target:
+                entity_id: scene.window_bw
+          button_type: switch
+          card_layout: normal
+          card_type: button
+          double_tap_action:
+            action: none
+          entity: light.ny1_lx
+          force_icon: true
+          hold_action:
+            action: none
+          icon: mdi:window-closed
+          name: LX Control
+          scrolling_effect: true
+          show_attribute: true
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: true
+          show_name: true
+          show_state: false
+          sub_button: []
+          tap_action:
+            action: navigate
+            navigation_path: '#ny1lx'
+            service: scene.turn_on
+            target:
+              entity_id: scene.window_bw
+          type: custom:bubble-card
+        - cards:
+          - attribute: brightness
+            button_action:
+              tap_action:
+                action: toggle
+                service: scene.turn_on
+                target:
+                  entity_id: scene.window_bw
+            button_type: switch
+            card_layout: normal
+            card_type: separator
+            double_tap_action:
+              action: more-info
+            entity: light.ny1_p_wled_01
+            force_icon: true
+            hold_action:
+              action: more-info
+            icon: mdi:lightbulb-group-outline
+            modules:
+            - default
+            name: LX
+            scrolling_effect: true
+            show_attribute: true
+            show_icon: true
+            show_last_changed: false
+            show_last_updated: true
+            show_name: true
+            show_state: false
+            styles: ".bubble-button-card-container {\n  background: #4e4b4b10 !important;\n\
+              \  }\n# .bubble-sub-button-1 {\n#   background-color: rgba(30,30,30,1)\
+              \ !important;\n#   }\n# .bubble-sub-button-2 {\n#   background-color:\
+              \ rgba(30,30,30,1) !important;\n#   }\n# .bubble-sub-button-3 {\n# \
+              \  background-color: rgba(30,30,30,1) !important;\n#   }\n.bubble-icon\
+              \ {\n  color: white !important;\n  }\n.bubble-icon-container {\n  background:\
+              \ rgba(50, 50, 50, 0.5);\n  }\n.bubble-line {\n  background: #4e4b4b10;\n\
+              \  opacity: 0.1;\n  }\n"
+            sub_button:
+            - double_tap_action:
+                action: navigate
+                navigation_path: '#overheadlx'
+              entity: light.tbr_lights
+              hold_action:
+                action: more-info
+              name: Overhead
+              show_background: true
+              show_icon: false
+              show_name: true
+              tap_action:
+                action: call-service
+                service: light.toggle
+                target:
+                  entity_id: light.kaufb_01
+            - double_tap_action:
+                action: none
+              entity: light.closet_light
+              hold_action:
+                action: more-info
+              name: Closet
+              show_background: true
+              show_icon: false
+              show_name: true
+              tap_action:
+                action: call-service
+                service: light.toggle
+                target:
+                  entity_id: light.closet_light
+            tap_action:
+              action: toggle
+              service: scene.turn_on
+              target:
+                entity_id: scene.window_bw
+            type: custom:bubble-card
+          type: horizontal-stack
+        - alignment: center
+          subtitle_tap_action:
+            action: none
+          title: Outside
+          title_tap_action:
+            action: none
+          type: custom:mushroom-title-card
+        - cards:
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.sample_enviro_temperature
+            font_size: 80
+            height: 50
+            line_color: var(--accent-color)
+            line_width: 8
+            name: Temp
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.sample_enviro_humidity
+            font_size: 80
+            height: 50
+            line_color: '#222D66'
+            line_width: 8
+            name: RH
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.sample_enviro_pressure
+            font_size: 80
+            height: 50
+            line_color: '#923172'
+            line_width: 8
+            name: PSI
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.ny1_p_airsensor_02_2_5_g
+            font_size: 80
+            height: 50
+            line_color: '#800000'
+            line_width: 8
+            name: AQ
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          type: horizontal-stack
+        - alignment: center
+          style: "ha-card {\n  width: 350px !important;\n  height: 200px !important;\n"
+          subtitle_tap_action:
+            action: none
+          title: Clark's Room
+          title_tap_action:
+            action: none
+          type: custom:mushroom-title-card
+        - cards:
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.clark_enviro_temperature
+            font_size: 80
+            height: 50
+            line_color: var(--accent-color)
+            line_width: 8
+            name: Temp
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.clark_enviro_humidity
+            font_size: 80
+            height: 50
+            line_color: '#222D66'
+            line_width: 8
+            name: RH
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.clark_enviro_pressure
+            font_size: 80
+            height: 50
+            line_color: '#923172'
+            line_width: 8
+            name: PSI
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          - card_mod:
+              style: ".state {\n  flex-wrap: wrap !important;\n}\n.state__uom {\n\
+                \  overflow: unset !important;\n}\nha-card {\n  --ha-card-background:\
+                \ #4e4b4b10;\n  }\n"
+            entities:
+            - sensor.ny1_p_airsensor_01
+            font_size: 80
+            height: 50
+            line_color: '#923172'
+            line_width: 8
+            name: AQI
+            show:
+              icon: false
+            type: custom:mini-graph-card
+          type: horizontal-stack
+        type: vertical-stack
+      - cards:
+        - alignment: center
+          subtitle_tap_action:
+            action: none
+          title: Camera Feed
+          title_tap_action:
+            action: none
+          type: custom:mushroom-title-card
+        - camera_image: camera.vivotek_camera
+          camera_view: live
+          entity: camera.vivotek_camera
+          image: https://demo.home-assistant.io/stub_config/bedroom.png
+          show_name: false
+          show_state: false
+          type: picture-entity
+          visibility:
+          - condition: state
+            entity: person.tristan
+            state_not: home
+        type: vertical-stack
+        visibility:
+        - condition: state
+          entity: person.tristan
+          state_not: home
+        - condition: state
+          entity: person.christian_musto
+          state_not: home
+      type: grid
+    - cards:
+      - heading: Local Info
+        type: heading
+      - card_mod:
+          style: "ha-card {\n  --ha-card-background: #4e4b4b10;\n  }\n"
+        current: true
+        details: true
+        entity: weather.pw_manhattan
+        forecast: true
+        hourly_forecast: false
+        name: MH
+        number_of_forecasts: '5'
+        type: custom:weather-card
+      - card_mod:
+          style: "ha-card {\n  --ha-card-background: #4e4b4b10;\n  }\n"
+        current: true
+        details: true
+        entity: weather.pw_bk
+        forecast: true
+        hourly_forecast: false
+        name: BK
+        number_of_forecasts: '5'
+        type: custom:weather-card
+      - camera_view: auto
+        card_mod:
+          style: "ha-card {\n  --ha-card-background: #4e4b4b10;\n  font-size: 1rem\
+            \ !important\n  }\n"
+        entity: camera.ny1_mail_usps_camera
+        fit_mode: cover
+        hold_action:
+          action: none
+        name: Mailbox
+        show_name: false
+        show_state: false
+        tap_action:
+          action: none
+        type: picture-entity
+      type: grid
+    - cards:
+      - heading: New section
+        type: heading
+      - attribute: temperature
+        bg_blur: '10'
+        bg_color: '#C0A7E2'
+        bg_opacity: 20
+        button_action:
+          tap_action:
+            '0': n
+            '1': o
+            '2': n
+            '3': e
+            service: scene.turn_on
+            target:
+              entity_id: scene.tbr_bed_light_warm_dim
+        button_type: state
+        card_type: pop-up
+        cards:
+        - attribute: current_temperature
+          button_action:
+            tap_action:
+              action: navigate
+              navigation_path: '#commonbathroom'
+          button_type: switch
+          card_layout: normal
+          card_type: button
+          entity: light.common_bathroom_sink_lx
+          force_icon: true
+          grid_options:
+            columns: 6
+          hold_action:
+            action: more-info
+          icon: mdi:toilet
+          name: Common Bathroom
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          styles: ''
+          sub_button: []
+          tap_action:
+            action: navigate
+            navigation_path: '#commonbathroom'
+          type: custom:bubble-card
+        - attribute: current_temperature
+          button_action:
+            double_tap_action:
+              action: more-info
+            tap_action:
+              action: toggle
+              navigation_path: '#commonbathroom'
+          button_type: switch
+          card_layout: normal
+          card_type: button
+          double_tap_action:
+            action: more-info
+          entity: light.kaufb_06
+          force_icon: true
+          grid_options:
+            columns: 6
+          hold_action:
+            action: more-info
+          icon: mdi:sofa-outline
+          name: Living Room
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          styles: ''
+          sub_button: []
+          tap_action:
+            action: toggle
+            navigation_path: '#commonbathroom'
+          type: custom:bubble-card
+        - attribute: current_temperature
+          button_action:
+            tap_action:
+              action: navigate
+              navigation_path: '#tbrlx'
+          button_type: switch
+          card_layout: normal
+          card_type: button
+          entity: light.tbr_lights
+          force_icon: true
+          grid_options:
+            columns: 6
+          hold_action:
+            action: more-info
+          icon: mdi:bed-double-outline
+          name: TBR
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          styles: ''
+          sub_button: []
+          tap_action:
+            action: navigate
+            navigation_path: '#tbrlx'
+          type: custom:bubble-card
+        - attribute: current_temperature
+          button_action:
+            tap_action:
+              action: toggle
+          button_type: switch
+          card_layout: normal
+          card_type: button
+          entity: light.ny1_p_s1m_03_loft_lights
+          force_icon: true
+          grid_options:
+            columns: 6
+          hold_action:
+            action: more-info
+          icon: mdi:home-roof
+          name: Loft
+          scrolling_effect: false
+          show_attribute: false
+          show_icon: true
+          show_last_changed: false
+          show_last_updated: false
+          show_name: true
+          show_state: false
+          styles: ''
+          sub_button: []
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        entity: light.ny1_lx
+        hash: '#ny1lx'
+        icon: ''
+        margin_top_desktop: calc(100vh - 400px)
+        margin_top_mobile: calc(100vh - 400px)
+        name: NY1 LX Control
+        scrolling_effect: false
+        show_attribute: true
+        show_header: true
+        show_icon: true
+        show_name: true
+        sub_button:
+          bottom: []
+          main: []
+        tap_action:
+          service: scene.turn_on
+          target:
+            entity_id: scene.tbr_bed_light_warm_dim
+        type: custom:bubble-card
+      - bg_blur: '10'
+        bg_color: '#C0A7E2'
+        bg_opacity: 20
+        button_type: switch
+        card_type: pop-up
+        cards:
+        - button_type: switch
+          card_type: button
+          double_tap_action:
+            action: more-info
+          entity: light.tbr_lights
+          grid_options:
+            columns: 6
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        - card_type: button
+          double_tap_action:
+            action: more-info
+          entity: light.ny1_p_wled_01
+          grid_options:
+            columns: 6
+          name: WLED-01
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        - card_type: button
+          double_tap_action:
+            action: more-info
+          entity: light.rgbw2_01
+          grid_options:
+            columns: 12
+          name: Bed
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        entity: light.tbr_lights
+        hash: '#tbrlx'
+        icon: mdi:bed-double-outline
+        margin_top_desktop: calc(100vh - 400px)
+        margin_top_mobile: calc(100vh - 400px)
+        name: TBR LX
+        sub_button:
+          bottom: []
+          main: []
+        type: custom:bubble-card
+      - bg_blur: '10'
+        bg_color: '#C0A7E2'
+        bg_opacity: 20
+        button_type: switch
+        card_type: pop-up
+        cards:
+        - card_type: button
+          double_tap_action:
+            action: more-info
+          entity: light.common_bathroom_sink_lx
+          grid_options:
+            columns: 6
+          name: Sink Lights
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        - card_type: button
+          double_tap_action:
+            action: more-info
+          entity: switch.shower_lights
+          grid_options:
+            columns: 6
+          icon: mdi:light-recessed
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        - card_type: button
+          double_tap_action:
+            action: more-info
+          entity: switch.exhaust_fan
+          grid_options:
+            columns: 6
+          icon: mdi:fan-auto
+          tap_action:
+            action: toggle
+          type: custom:bubble-card
+        - card_type: climate
+          entity: climate.bedroom_heater
+          force_icon: true
+          grid_options:
+            columns: 6
+          hold_action:
+            action: more-info
+          icon: mdi:radiator
+          scrolling_effect: false
+          show_name: false
+          state_color: true
+          styles: "  * { \n    font-size: 16px !important;\n  }\n ${card.querySelector('.bubble-name').innerText\
+            \ = hass.states['climate.bedroom_heater'].attributes.temperature + \"\xB0\
+            F\"}"
+          sub_button: []
+          tap_action:
+            action: toggle
+            service: climate.toggle
+            target:
+              entity_id: climate.bedroom_heater
+          type: custom:bubble-card
+        entity: light.common_bathroom_sink_lx
+        hash: '#commonbathroom'
+        icon: mdi:toilet
+        margin_top_desktop: calc(100vh - 400px)
+        margin_top_mobile: calc(100vh - 400px)
+        name: Common Bathroom
+        sub_button:
+          bottom: []
+          main: []
+        type: custom:bubble-card
+      type: grid
+    title: Home
+    type: sections

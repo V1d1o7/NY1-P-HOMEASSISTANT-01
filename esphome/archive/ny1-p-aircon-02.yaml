@@ -1,0 +1,9 @@
+substitutions:
+  name: ny1-p-aircon-02 # Do not use underscores, which are not fully compatible with mDNS
+  friendly_name: NY1-P-AIRCON-02
+  remote_temp_sensor: sensor.sample_room_temp
+  outside_temp_sensor: sensor.outside_enviro_temperature
+
+
+packages:
+  device_base: !include Base_Confs/MitsubishiCN105.yaml

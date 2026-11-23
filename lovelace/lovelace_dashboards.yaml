@@ -39,16 +39,58 @@ items:
   show_in_sidebar: true
   title: Control Center
   url_path: control-center
-- icon: mdi:speaker
-  id: sample_dashboard
-  mode: storage
-  require_admin: false
-  show_in_sidebar: true
-  title: Sample
-  url_path: sample-dashboard
 - id: dashboard_cocktails
   mode: storage
   require_admin: false
   show_in_sidebar: true
   title: Cocktails
   url_path: dashboard-cocktails
+- icon: mdi:webcam
+  id: dashboard_cameras
+  mode: storage
+  require_admin: false
+  show_in_sidebar: false
+  title: Cameras
+  url_path: dashboard-cameras
+- icon: mdi:electric-switch
+  id: switches_relays
+  mode: storage
+  require_admin: true
+  show_in_sidebar: true
+  title: Switches/Relays
+  url_path: switches-relays
+- icon: mdi:wardrobe
+  id: dashboard_clark
+  mode: storage
+  require_admin: false
+  show_in_sidebar: true
+  title: Clark
+  url_path: dashboard-clark
+- icon: mdi:information
+  id: dashboard_hq
+  mode: storage
+  require_admin: false
+  show_in_sidebar: true
+  title: HQ
+  url_path: dashboard-hq
+- icon: mdi:microphone
+  id: dashboard_christian
+  mode: storage
+  require_admin: false
+  show_in_sidebar: true
+  title: Christian
+  url_path: dashboard-christian
+- icon: mdi:projector
+  id: tristan_mobile_v2
+  mode: storage
+  require_admin: false
+  show_in_sidebar: true
+  title: Tristan Mobile v2
+  url_path: tristan-mobile-v2
+- icon: mdi:view-dashboard
+  id: lovelace
+  mode: storage
+  require_admin: false
+  show_in_sidebar: true
+  title: Overview
+  url_path: lovelace

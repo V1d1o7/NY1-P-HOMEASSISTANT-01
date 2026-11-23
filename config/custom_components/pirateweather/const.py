@@ -1,4 +1,4 @@
-"""Consts for the OpenWeatherMap."""
+"""Consts for the Pirate Weather."""
 
 from __future__ import annotations
 
@@ -28,14 +28,18 @@ from homeassistant.const import (
 )
 
 DOMAIN = "pirateweather"
-DEFAULT_NAME = "PirateWeather"
+DEFAULT_NAME = "Pirate Weather"
 DEFAULT_LANGUAGE = "en"
 DEFAULT_UNITS = "us"
 DEFAULT_SCAN_INTERVAL = 1200
+DEFAULT_ENDPOINT = "https://api.pirateweather.net"
 ATTRIBUTION = "Data provided by Pirate Weather GUI"
 MANUFACTURER = "PirateWeather"
 CONF_LANGUAGE = "language"
 CONF_UNITS = "units"
+CONF_ENDPOINT = "endpoint"
+CONF_MODELS = "models"
+CONF_INSTANCE_ID = "instance_id"
 CONFIG_FLOW_VERSION = 2
 ENTRY_NAME = "name"
 ENTRY_WEATHER_COORDINATOR = "weather_coordinator"
@@ -109,6 +113,7 @@ ALL_CONDITIONS = {
     "apparent_temperature_low": "Apparent Temperature Low",
     "precip_intensity_max": "Precip Intensity Max",
     "uv_index": "UV Index",
+    "air_quality_index": "Air Quality Index",
     "moon_phase": "Moon Phase",
     "sunrise_time": "Sunrise Time",
     "sunset_time": "Sunset Time",
@@ -138,58 +143,76 @@ ALL_CONDITIONS = {
     "current_day_liquid": "Current Day Liquid Accumulation",
     "current_day_snow": "Current Day Snow Accumulation",
     "current_day_ice": "Current Day Ice Accumulation",
+    "cape": "Convective Available Potential Energy",
+    "cape_max": "Convective Available Potential Energy Max",
+    "solar": "Downward Short-Wave Radiation Flux",
+    "solar_max": "Downward Short-Wave Radiation Flux Max",
+    "rain_intensity": "Rain Intensity",
+    "rain_intensity_max": "Rain Intensity Max",
+    "snow_intensity": "Snow Intensity",
+    "snow_intensity_max": "Snow Intensity Max",
+    "ice_intensity": "Ice Intensity",
+    "ice_intensity_max": "Ice Intensity Max",
 }
 
 LANGUAGES = [
-    "af",
-    "al",
     "ar",
     "az",
+    "be",
     "bg",
+    "bn",
+    "bs",
     "ca",
-    "cz",
+    "cs",
+    "cy",
     "da",
     "de",
     "el",
     "en",
+    "eo",
     "es",
-    "eu",
+    "et",
     "fa",
     "fi",
     "fr",
-    "gl",
+    "ga",
+    "gd",
     "he",
     "hi",
     "hr",
     "hu",
     "id",
+    "is",
     "it",
     "ja",
-    "kr",
-    "la",
-    "lt",
-    "mk",
+    "ka",
+    "kn",
+    "ko",
+    "kw",
+    "lv",
+    "ml",
+    "mr",
     "nl",
     "no",
+    "pa",
     "pl",
     "pt",
-    "pt_br",
     "ro",
     "ru",
-    "se",
     "sk",
     "sl",
-    "sp",
     "sr",
     "sv",
-    "th",
+    "ta",
+    "te",
+    "tet",
     "tr",
-    "ua",
     "uk",
+    "ur",
     "vi",
-    "zh_cn",
-    "zh_tw",
-    "zu",
+    "x-pig-latin",
+    "zh",
+    "zh-tw",
 ]
 
 WEATHER_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (

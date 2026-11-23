@@ -1,0 +1,8 @@
+weather:
+  - name: TBR
+    temperature_unit: °F
+    condition: '{{ states(''weather.pw_bk'') }}'
+    humidity: '{{ states(''sensor.tbr_weather_humidity'') | float }}'
+    pressure: '{{ states(''sensor.tbr_weather_pressure'')  | float }}'
+    temperature: '{{ states(''sensor.tbr_weather_temperature'') | float | round(1)
+      }}'
