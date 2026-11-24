@@ -1,1 +1,75 @@
-
+triggers:
+  - trigger: homeassistant
+    event: start
+  - trigger: event
+    event_type: event_template_reloaded
+  - trigger: time_pattern
+    minutes: /10
+  - trigger: time
+    at: "00:00:05"
+  - trigger: state
+    entity_id:
+      - calendar.christian_musto97_gmail_com
+      - calendar.tsungjuyang_gmail_com
+actions:
+  - action: calendar.get_events
+    target:
+      entity_id:
+        - calendar.christian_musto97_gmail_com
+        - calendar.tsungjuyang_gmail_com
+    data:
+      start_date_time: "{{ today_at('00:00') }}"
+      end_date_time: "{{ today_at('00:00') + timedelta(days=1) }}"
+    response_variable: cal
+  - variables:
+      c_events: >-
+        {%- set d = now().date() | string -%}
+        {{ cal['calendar.christian_musto97_gmail_com'].events
+           | selectattr('start', 'search', '^' ~ d) | sort(attribute='start') | list }}
+      k_events: >-
+        {%- set d = now().date() | string -%}
+        {{ cal['calendar.tsungjuyang_gmail_com'].events
+           | selectattr('start', 'search', '^' ~ d) | sort(attribute='start') | list }}
+      c_pick: >-
+        {%- set timed = c_events | selectattr('start', 'search', 'T') | list -%}
+        {%- set live = timed | selectattr('end', '>', now().isoformat()) | list -%}
+        {%- if live -%}{{ live[0] }}
+        {%- elif timed -%}{{ timed[-1] }}
+        {%- elif c_events -%}{{ c_events[0] }}
+        {%- else -%}{{ {} }}{%- endif -%}
+      k_pick: >-
+        {%- set timed = k_events | selectattr('start', 'search', 'T') | list -%}
+        {%- set live = timed | selectattr('end', '>', now().isoformat()) | list -%}
+        {%- if live -%}{{ live[0] }}
+        {%- elif timed -%}{{ timed[-1] }}
+        {%- elif k_events -%}{{ k_events[0] }}
+        {%- else -%}{{ {} }}{%- endif -%}
+sensor:
+  - name: Christian Today
+    default_entity_id: sensor.christian_today
+    unique_id: christian_today_event
+    icon: mdi:calendar-clock
+    state: "{{ (c_pick.summary | default('Busy'))[:60] if c_pick else 'Off' }}"
+    attributes:
+      time: >-
+        {%- if not c_pick -%}Off
+        {%- elif 'T' not in c_pick.start -%}All day
+        {%- else -%}{{ as_timestamp(c_pick.start) | timestamp_custom('%H:%M') }}–{{ as_timestamp(c_pick.end) | timestamp_custom('%H:%M') }}{%- endif -%}
+      start: "{{ c_pick.start if c_pick else none }}"
+      end: "{{ c_pick.end if c_pick else none }}"
+      count: "{{ c_events | count }}"
+ 
+  - name: Clark Today
+    default_entity_id: sensor.clark_today
+    unique_id: clark_today_event
+    icon: mdi:calendar-clock
+    state: "{{ (k_pick.summary | default('Busy'))[:60] if k_pick else 'Off' }}"
+    attributes:
+      time: >-
+        {%- if not k_pick -%}Off
+        {%- elif 'T' not in k_pick.start -%}All day
+        {%- else -%}{{ as_timestamp(k_pick.start) | timestamp_custom('%H:%M') }}–{{ as_timestamp(k_pick.end) | timestamp_custom('%H:%M') }}{%- endif -%}
+      start: "{{ k_pick.start if k_pick else none }}"
+      end: "{{ k_pick.end if k_pick else none }}"
+      count: "{{ k_events | count }}"
+ 

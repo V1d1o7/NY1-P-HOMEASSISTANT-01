@@ -157,6 +157,37 @@ config:
             tap_action:
               action: toggle
         type: custom:bubble-card
+      - card_layout: large
+        card_type: climate
+        entity: climate.ny1_p_aircon_02
+        icon: mdi:air-conditioner
+        name: Air Conditioning
+        show_state: true
+        styles: ".bubble-button-background {\n  background: ${state === 'cool' ? 'linear-gradient(135deg,\
+          \ rgba(77, 171, 247, 0.3) 0%, rgba(77, 171, 247, 0.1) 100%)'\n    : state\
+          \ === 'heat' ? 'linear-gradient(135deg, rgba(255, 107, 107, 0.3) 0%, rgba(255,\
+          \ 107, 107, 0.1) 100%)'\n    : state === 'dry' ? 'linear-gradient(135deg,\
+          \ rgba(255, 159, 67, 0.25) 0%, rgba(255, 159, 67, 0.08) 100%)'\n    : state\
+          \ === 'fan_only' ? 'linear-gradient(135deg, rgba(10, 189, 227, 0.25) 0%,\
+          \ rgba(10, 189, 227, 0.08) 100%)'\n    : 'rgba(30, 30, 35, 0.6)'} !important;\n\
+          \  border: ${state === 'off' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px\
+          \ solid rgba(255, 255, 255, 0.15)'} !important;\n  transition: all 0.3s\
+          \ ease-in-out;\n} .bubble-icon {\n  color: ${state === 'cool' ? '#4dabf7'\
+          \ : state === 'heat' ? '#ff6b6b' : state === 'off' ? 'rgba(255,255,255,0.7)'\
+          \ : '#ffffff'} !important;\n} .bubble-name {\n  font-weight: 700 !important;\n\
+          }\n"
+        sub_button:
+          bottom: []
+          main:
+          - entity: climate.ny1_p_aircon_02
+            select_attribute: hvac_modes
+            show_arrow: false
+            show_background: true
+          - entity: select.ny1_p_aircon_02_vertical_vane
+            icon: mdi:arrow-oscillating
+            show_arrow: false
+            show_background: true
+        type: custom:bubble-card
       - card_type: separator
         icon: mdi:shower
         name: Bathroom
