@@ -3373,3 +3373,45 @@
       entity_only: true
     light.lr_inovelli:
       entity_only: true
+- id: '1795724302925'
+  name: TBR Bright Warm
+  entities:
+    light.tbr_lights:
+      min_color_temp_kelvin: 2800
+      max_color_temp_kelvin: 6600
+      effect_list:
+      - None
+      - Flicker
+      - Random
+      - Strobe
+      supported_color_modes:
+      - color_temp
+      - rgb
+      effect: None
+      color_mode: color_temp
+      brightness: 86
+      color_temp_kelvin: 2800
+      hs_color:
+      - 28.187
+      - 62.618
+      rgb_color:
+      - 255
+      - 170
+      - 95
+      xy_color:
+      - 0.516
+      - 0.386
+      entity_id:
+      - light.rgbw2_01
+      - light.ny1_p_kaufb_08
+      - light.ny1_p_kaufb_09
+      - light.ny1_p_kaufb_10
+      - light.ny1_p_kaufb_11
+      - light.ny1_p_kuafb_12
+      - light.ny1_p_kaufb_07
+      friendly_name: TBR LX
+      supported_features: 44
+      state: 'on'
+  metadata:
+    light.tbr_lights:
+      entity_only: true
